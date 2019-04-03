@@ -97,3 +97,13 @@ rule get_phylogeny:
         print(tree.as_string('nexus').replace('*','').replace('"', '').replace("'", ''), file=open(output.nexus, 'w'))
 
 
+rule strip_internal_nodes:
+    input:
+        "{tree}.tree"
+    output:
+        "{tree}.leaves.tree"
+    shell: """
+    sed 's/[0-9][0-9_A-Za-z]*:/:/g' < {input} \
+        | sed 's/\[&R\] //' \
+        > {output}
+    """
