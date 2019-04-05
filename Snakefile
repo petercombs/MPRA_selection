@@ -115,3 +115,56 @@ rule strip_internal_nodes:
         | sed 's/\[&R\] //' \
         > {output}
     """
+
+rule fastml_reconstruction:
+    input:
+        tree="{enhancer}/mammals.leaves.tree",
+        seqs="{enhancer}/clustalo.fasta",
+    output:
+        log="{enhancer}/FastML/fastml.std",
+        seqs="{enhancer}/FastML/seq.marginal_IndelAndChars.txt",
+        tree="{enhancer}/FastML/tree.newick.txt",
+    shell:"""
+    rm -rf `dirname {output}`/FastML
+    perl tools/FastML.v3.11/www/fastml/FastML_Wrapper.pl \
+        --MSA_File $PWD/{input.seqs} \
+        --seqType NUC \
+        --outdir $PWD/`dirname {output}`/FastML \
+        --Tree $PWD/{input.tree} \
+        --indelCutOff 0.9 \
+        --optimizeBL no
+    """
+
+rule sequence_from_file:
+    input:
+        "MPRA/GRCh38_ALL.tsv",
+        "enhancers/{enhancer}/exists",
+    output:
+        "enhancers/{enhancer}/sequence.fasta"
+    shell: """
+    echo ">Homo_sapiens 100" > {output}
+    awk '$NF == "{wildcards.enhancer}" {{print $2,$3}}' {input} \
+        | uniq \
+        | cut -f 2 -d ' '\
+        | tr -d '\n' \
+        >> {output}
+    echo " " >> {output}
+    """
+
+rule exists:
+    output: touch("{dir}/exists")
+
+localrules: exists
+
+rule ancestor_comparisons:
+    input:
+        "{enhancer}/primates.fasta",
+        "{enhancer}/FastML/tree.newick.tree",
+        "{enhancer}/FastML/seq.marginal_IndelAndChars.txt",
+    output:
+        "{enhancer}/FastML/KuKn.txt",
+        "{enhancer}/FastML/KdKn.txt",
+    shell: """
+    """
+
+
