@@ -19,11 +19,14 @@ class TaxonomicNode:
         """Return true if this node is directly beneath any of the given
         taxids"""
 
-        if self.taxid in taxids:
-            return True
-        elif self.parent is None:
+        if self.parent is None or not taxids:
+            # We are at the root of the tree (or we were provided an empty list)
             return False
+        elif self.taxid in taxids:
+            # This node is one of the targets
+            return True
         else:
+            # This node isn't one of the targets, but maybe its parent is?
             return self.parent.is_descendent(taxids)
 
 
@@ -33,12 +36,14 @@ def parse_args():
         "--include",
         "-i",
         nargs="*",
+        default=set(),
         help="""Require each entry to be a child of one (or more) of these taxids""",
     )
     parser.add_argument(
         "--exclude",
         "-x",
         nargs="*",
+        default=set(),
         help="""Exclude entries that are children of any of these taxids""",
     )
     parser.add_argument(
@@ -85,7 +90,7 @@ def parse_nodefile(nodes):
     num_no_parents = 0
     for node in all_nodes.values():
         num_no_parents += node.parent is None
-    print(num_no_parents)
+    print(num_no_parents, file=stderr)
     return all_nodes
 
 
@@ -93,13 +98,13 @@ if __name__ == "__main__":
     args = parse_args()
     nodes = parse_nodefile(args.nodes)
 
-    print("Hsap in primates", nodes["9606"].is_descendent(["9443"]))
-    print("Horse in primates", nodes["9796"].is_descendent(["9443"]))
+    #print("Hsap in primates", nodes["9606"].is_descendent(["9443"]))
+    #print("Horse in primates", nodes["9796"].is_descendent(["9443"]))
 
     for line in args.input:
         if args.taxid_column is not None:
             columns = line.rstrip("\n").split(args.delimiter)
-            data = columns[args.taxid_column]
+            data = columns[args.taxid_column].strip()
         else:
             data = line.rstrip("\n")
 
@@ -117,3 +122,5 @@ if __name__ == "__main__":
                 )
             else:
                 print(line, end="")
+        else:
+            print("Filtered: ", line.strip(), file=stderr)
