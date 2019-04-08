@@ -3,6 +3,8 @@ from dendropy import Tree
 from Bio import SeqIO, AlignIO
 import pandas as pd
 from os import path
+from scipy.stats import fisher_exact
+from sys import stderr
 
 
 def parse_args():
@@ -32,13 +34,34 @@ if __name__ == "__main__":
     alignment = AlignIO.read(args.seqs, "fasta")
     alignment_posns = {rec.id: i for i, rec in enumerate(alignment)}
 
-    mpra_data = pd.read_csv(
-        args.mpra_data,
-        sep="\t",
-        header=None,
-        names=["Enhancer", "pos", "newbase", "effect", "pval"],
-        index_col=["Enhancer", "pos", "newbase"],
-    )
+    if "GRCh38_ALL" in args.mpra_data:
+        mpra_data = pd.read_csv(args.mpra_data, sep="\t")
+        old_mpra_data = mpra_data
+
+        # We are interested in the position per-enhancer
+        mpra_data["pos"] = -1
+        for enh in mpra_data.Element.unique():
+            ix = mpra_data.Element == enh
+            mpra_data.loc[ix, "pos"] = (
+                mpra_data.loc[ix].Position - mpra_data.loc[ix].Position.min() + 1
+            )
+
+        mpra_data = pd.DataFrame(
+            index=pd.MultiIndex.from_arrays(
+                [mpra_data.Element, mpra_data.pos, mpra_data.Alt]
+            ),
+            data={"Value": list(mpra_data.Value), "pval": list(mpra_data["P-Value"])},
+            # We need to cast to a list to get it to work with the reindexing
+        )
+    else:
+        # This is likely the Patwardhan data
+        mpra_data = pd.read_csv(
+            args.mpra_data,
+            sep="\t",
+            header=None,
+            names=["Element", "pos", "Alt", "Value", "pval"],
+            index_col=["Element", "pos", "Alt"],
+        )
 
     print(tree.as_string("newick"))
     if args.target_species_fasta:
@@ -48,7 +71,10 @@ if __name__ == "__main__":
         }
         tree.retain_taxa_with_labels(target_species)
 
-    print(tree.as_string("newick"))
+    overall_du = 0
+    overall_dd = 0
+    overall_dn = 0
+
     for node in tree:
         if node.parent_node is None:
             continue
@@ -67,24 +93,58 @@ if __name__ == "__main__":
             if homo_seq[i] == "-":
                 continue
             homo_pos += 1
-            if parent_seq[i] == "-" or child_seq[i] == "-":
-                continue
-            elif parent_seq[i] == homo_seq[i] and parent_seq[i] != child_seq[i]:
-                mpra_row = mpra_data.loc[args.enhancer_name, homo_pos, child_seq[i]]
-                if mpra_row.pval > .05:
-                    dn += 1
-                elif mpra_row.effect < 0:
-                    dd += 1
-                else:
-                    du += 1
-            elif child_seq[i] == homo_seq[i] and parent_seq[i] != child_seq[i]:
-                mpra_row = mpra_data.loc[args.enhancer_name, homo_pos, parent_seq[i]]
-                if mpra_row.pval > .05:
-                    dn += 1
-                elif mpra_row.effect > 0:
-                    dd += 1
-                else:
-                    du += 1
+            try:
+                if parent_seq[i] == "-" or child_seq[i] == "-":
+                    continue
+                elif parent_seq[i] == homo_seq[i] and parent_seq[i] != child_seq[i]:
+                    if len(mpra_data.loc[args.enhancer_name, homo_pos]) < 3:
+                        continue
+                    mpra_row = mpra_data.loc[args.enhancer_name, homo_pos, child_seq[i]]
+                    if mpra_row.pval > .05:
+                        dn += 1
+                    elif mpra_row.Value < 0:
+                        dd += 1
+                    else:
+                        du += 1
+                elif child_seq[i] == homo_seq[i] and parent_seq[i] != child_seq[i]:
+                    if len(mpra_data.loc[args.enhancer_name, homo_pos]) < 3:
+                        raise ValueError(f"Missing one or more bases at {homo_pos}")
+                    mpra_row = mpra_data.loc[
+                        args.enhancer_name, homo_pos, parent_seq[i]
+                    ]
+                    if mpra_row.pval > .05:
+                        dn += 1
+                    elif mpra_row.Value > 0:
+                        dd += 1
+                    else:
+                        du += 1
+            except Exception as err:
+                print("ERR:", homo_seq[i], parent_seq[i], child_seq[i], file=stderr)
+                print("ERR:", mpra_data.loc[args.enhancer_name, homo_pos], file=stderr)
+                print("ERR:", err, file=stderr)
 
-        print(parent_name, node_name, du, dn, '<-- UP')
-        print(parent_name, node_name, dd, dn, '<-- DOWN')
+        overall_du += du
+        overall_dd += dd
+        overall_dn += dn
+        print(parent_name, node_name, du, dn, "<-- UP")
+        print(parent_name, node_name, dd, dn, "<-- DOWN")
+
+    pu = len(mpra_data.query("Value > 0 and pval < .05"))
+    pd = len(mpra_data.query("Value < 0 and pval < .05"))
+    pn = len(mpra_data.query("pval > .05"))
+
+    kukn_fisher = fisher_exact([[overall_du, overall_dn], [pu, pn]])
+    kdkn_fisher = fisher_exact([[overall_dd, overall_dn], [pd, pn]])
+
+    if pu > 0 and pn > 0 and overall_dn > 0 and overall_du > 0:
+        print("Overall Ku/Kn", (overall_du / pu) / (overall_dn / pn), kukn_fisher[1])
+    else:
+        print(
+            f"Overall Ku/Kn not well defined: Ku = {overall_du}/{pu}, Kn = {overall_dn}/{pn}"
+        )
+    if pd > 0 and pn > 0 and overall_dn > 0 and overall_dd > 0:
+        print("Overall Kd/Kn", (overall_dd / pd) / (overall_dn / pn), kdkn_fisher[1])
+    else:
+        print(
+            f"Overall Kd/Kn not well defined: Kd = {overall_dd}/{pd}, Kn = {overall_dn}/{pn}"
+        )
