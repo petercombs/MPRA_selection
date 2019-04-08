@@ -162,13 +162,29 @@ localrules: exists
 
 rule ancestor_comparisons:
     input:
-        "{enhancer}/primates.fasta",
-        "{enhancer}/FastML/tree.newick.tree",
-        "{enhancer}/FastML/seq.marginal_IndelAndChars.txt",
+        primates="enhancers/{enhancer}/primates.fasta",
+        tree="enhancers/{enhancer}/FastML/tree.newick.txt",
+        seq="enhancers/{enhancer}/FastML/seq.marginal_IndelAndChars.txt",
+        data=lambda wildcards: config['data_files'][wildcards.enhancer],
+        script="ListAncestorsComparisons.py",
     output:
-        "{enhancer}/FastML/KuKn.txt",
-        "{enhancer}/FastML/KdKn.txt",
+        "enhancers/{enhancer}/FastML/selection_results.txt",
+    params:
+        ename=lambda wildcards: (wildcards.enhancer.lower()
+                if 'Patwardhan' in config['data_files'][wildcards.enhancer]
+                else wildcards.enhancer)
+    conda: "envs/conda.env"
     shell: """
+    python {input.script} \
+        --enhancer-name {params.ename} \
+        -t {input.primates} \
+        {input.seq} {input.tree} {input.data} \
+        > {output}
     """
 
-
+rule all_selection:
+    input:
+        expand("enhancers/{enhancer}/{recon}/selection_results.txt",
+                enhancer=config["data_files"].keys(),
+                recon=["FastML"],
+        )
