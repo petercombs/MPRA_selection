@@ -1,8 +1,10 @@
 primates = "9443"
-rodents = "9889"
+rodents = "314147" # and rabbits
 human = "9606"
-include_taxids = "{primates} {rodents}"
-exclude_taxids = "{human}"
+include_taxids = "{primates} {rodents}".format(primates=primates, rodents=rodents)
+exclude_taxids = "{human}".format(human=human)
+
+configfile: "config.yaml"
 
 rule reduce_to_mammals:
     input: "Reference/nodes.dmp"
