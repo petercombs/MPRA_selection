@@ -1,0 +1,33 @@
+data_files:
+    ALDOB: MPRA/Patwardhan_SupplementaryData/trivariate.tab
+    ECR11: MPRA/Patwardhan_SupplementaryData/trivariate.tab
+    BCL11A: MPRA/GRCh38_ALL.tsv
+    F9: MPRA/GRCh38_ALL.tsv
+    FOXE1: MPRA/GRCh38_ALL.tsv
+    GP1BA: MPRA/GRCh38_ALL.tsv
+    HBB: MPRA/GRCh38_ALL.tsv
+    HBG1: MPRA/GRCh38_ALL.tsv
+    HNF4A: MPRA/GRCh38_ALL.tsv
+    IRF4: MPRA/GRCh38_ALL.tsv
+    IRF6: MPRA/GRCh38_ALL.tsv
+    LDLR: MPRA/GRCh38_ALL.tsv
+    LDLR.2: MPRA/GRCh38_ALL.tsv
+    MSMB: MPRA/GRCh38_ALL.tsv
+    MYCrs11986220: MPRA/GRCh38_ALL.tsv
+    MYCrs6983267: MPRA/GRCh38_ALL.tsv
+    PKLR-24h: MPRA/GRCh38_ALL.tsv
+    PKLR-48h: MPRA/GRCh38_ALL.tsv
+    RET: MPRA/GRCh38_ALL.tsv
+    SORT1: MPRA/GRCh38_ALL.tsv
+    SORT1.2: MPRA/GRCh38_ALL.tsv
+    SORT1-flip: MPRA/GRCh38_ALL.tsv
+    TCF7L2: MPRA/GRCh38_ALL.tsv
+    TERT-GAa: MPRA/GRCh38_ALL.tsv
+    TERT-GBM: MPRA/GRCh38_ALL.tsv
+    TERT-GSc: MPRA/GRCh38_ALL.tsv
+    TERT-HEK: MPRA/GRCh38_ALL.tsv
+    UC88: MPRA/GRCh38_ALL.tsv
+    ZFAND3: MPRA/GRCh38_ALL.tsv
+    ZRSh-13: MPRA/GRCh38_ALL.tsv
+    ZRSh-13h2: MPRA/GRCh38_ALL.tsv
+
