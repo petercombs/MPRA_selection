@@ -14,6 +14,11 @@ species_replacements = [
     ("Chlorocebus_sabaeus", "Cercopithecus_mitis"),
     ("Cercocebus_atys", "Cercocebus_galeritus"),
     ("Fukomys_damarensis", "Cryptomys_damarensis"),
+    ("Ictidomys_tridecemlineatus", "Spermophilus_tridecemlineatus"),
+    ("Cricetulus_griseus", "Cricetulus_barabensis"),
+    ("Urocitellus_parryii", "Spermophilus_parryii"),
+    ("Nannospalax_galili", "Nannospalax_ehrenbergi"),
+    ("Plecturocebus_moloch", "Callicebus_moloch"),
 ]
 
 if __name__ == "__main__":
