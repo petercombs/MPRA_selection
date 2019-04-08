@@ -108,6 +108,11 @@ if __name__ == "__main__":
         else:
             data = line.rstrip("\n")
 
+        if data not in nodes:
+            print(
+                "Filtered due to not being in the database: ", line.strip(), file=stderr
+            )
+            continue
         node = nodes[data]
         if (not node.is_descendent(args.exclude)) and node.is_descendent(args.include):
             if args.output_fasta and args.taxid_column is not None:
@@ -122,5 +127,9 @@ if __name__ == "__main__":
                 )
             else:
                 print(line, end="")
+        elif not node.is_descendent(args.exclude):
+            print("Filtered due to not being included: ", line.strip(), file=stderr)
+        elif node.is_descendent(args.include):
+            print("Filtered due to being excluded: ", line.strip(), file=stderr)
         else:
-            print("Filtered: ", line.strip(), file=stderr)
+            print("Should not make it here: ", line.strip(), file=stderr)
