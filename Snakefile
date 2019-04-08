@@ -123,18 +123,20 @@ rule fastml_reconstruction:
         tree="{enhancer}/mammals.leaves.tree",
         seqs="{enhancer}/clustalo.fasta",
     output:
+        isdone="{enhancer}/fastml_done",
         log="{enhancer}/FastML/fastml.std",
         seqs="{enhancer}/FastML/seq.marginal_IndelAndChars.txt",
         tree="{enhancer}/FastML/tree.newick.txt",
     shell:"""
-    rm -rf `dirname {output}`/FastML
+    rm -rf `dirname {output.isdone}`/FastML
     perl tools/FastML.v3.11/www/fastml/FastML_Wrapper.pl \
         --MSA_File $PWD/{input.seqs} \
         --seqType NUC \
-        --outdir $PWD/`dirname {output}`/FastML \
+        --outdir $PWD/`dirname {output.isdone}`/FastML \
         --Tree $PWD/{input.tree} \
         --indelCutOff 0.9 \
         --optimizeBL no
+    touch {output.isdone}
     """
 
 rule sequence_from_file:
