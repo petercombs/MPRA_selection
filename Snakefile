@@ -141,18 +141,12 @@ rule fastml_reconstruction:
 
 rule sequence_from_file:
     input:
-        "MPRA/GRCh38_ALL.tsv",
-        "enhancers/{enhancer}/exists",
+        data=lambda wildcards: config['data_files'][wildcards.enhancer],
+        exists="enhancers/{enhancer}/exists",
     output:
         "enhancers/{enhancer}/sequence.fasta"
     shell: """
-    echo ">Homo_sapiens 100" > {output}
-    awk '$NF == "{wildcards.enhancer}" {{print $2,$3}}' {input} \
-        | uniq \
-        | cut -f 2 -d ' '\
-        | tr -d '\n' \
-        >> {output}
-    echo " " >> {output}
+    python ExtractSequenceFromDataFile.py {wildcards.enhancer} {input.data} > {output}
     """
 
 rule exists:
