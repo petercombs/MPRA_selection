@@ -31,3 +31,13 @@ data_files:
     ZRSh-13: MPRA/GRCh38_ALL.tsv
     ZRSh-13h2: MPRA/GRCh38_ALL.tsv
 
+
+promoters : [
+    TERT-GAa, TERT-GBM, TERT-GSc, TERT-HEK, LDLR, LDLR.2, HBB, HBG1, HNF4A,
+    MSMB, PKLR-24h, PKLR-48h, F9, FOXE1, GP1BB
+]
+
+enhancers: [
+    SORT1, SORT1.2, SORT1-flip ZRSh-13, ZRSh-13h2, BCL11A, IRF4, IRF6,
+    MYCrs6983267, MYCrs11986220, RET, TCF7L2, ZFAND3, UC88
+]
