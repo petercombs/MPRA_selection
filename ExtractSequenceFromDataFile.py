@@ -15,11 +15,11 @@ if __name__ == "__main__":
 
         if filetype == "?":
             if len(data) == 10:
-                filetype = "nadav"
+                filetype = "kircher"
             elif len(data) == 5:
                 filetype = "patwardhan"
 
-        if filetype == "nadav":
+        if filetype == "kircher":
             if data[9] == argv[1]:
                 chrom = data[0]
                 seq[pos] = {data[2]}
