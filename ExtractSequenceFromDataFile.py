@@ -5,7 +5,6 @@ from textwrap import wrap
 if __name__ == "__main__":
     filetype = "?"
     chrom = "?"
-    seq = defaultdict(lambda: set("ATGC"))
     for line in open(argv[2]):
         data = line.strip().split()
         try:
@@ -16,8 +15,10 @@ if __name__ == "__main__":
         if filetype == "?":
             if len(data) == 10:
                 filetype = "kircher"
+                seq = defaultdict(lambda: set("N"))
             elif len(data) == 5:
                 filetype = "patwardhan"
+                seq = defaultdict(lambda: set("ATGC"))
 
         if filetype == "kircher":
             if data[9] == argv[1]:
@@ -33,5 +34,7 @@ if __name__ == "__main__":
 
     min = min(seq.keys())
     max = max(seq.keys())
-    seq = wrap("".join(seq[i].pop() for i in sorted(seq.keys())))
+    # We know that TCF7L2 has a missing base in the data file, so I'm going to
+    # use range instead of just looping over the bases.
+    seq = wrap("".join(seq[i].pop() for i in range(min, max+1)))
     print(f">Homo_sapiens chr{chrom}:{min}-{max} 100.0", *seq, sep="\n")
