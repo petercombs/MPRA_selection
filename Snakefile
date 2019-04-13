@@ -96,6 +96,53 @@ rule clustalo_align:
         "{enhancer}/clustalo.fasta",
     shell: "clustalo --force -i {input} -o {output} -v"
 
+rule clustalw_align:
+    input:
+        "{enhancer}/localblast.fasta",
+    output:
+        "{enhancer}/clustalw.clustal",
+    shell: "clustalw -infile={input} -align -outfile={output} "
+
+rule clustal_to_fasta:
+    input:
+        "{file}.clustal"
+    output:
+        "{file}.fasta"
+    #conda: "envs/conda.env"
+    run:
+        from Bio import SeqIO
+        in_recs = SeqIO.parse(input[0], 'clustal')
+        SeqIO.write(in_recs, output[0], 'fasta')
+
+rule muscle_align:
+    input:
+        "{enhancer}/localblast.fasta",
+    output:
+        "{enhancer}/muscle.fasta",
+    shell: "muscle -in {input} -out {output} -diags "
+
+rule tcoffee_align:
+    input:
+        "{enhancer}/localblast.fasta",
+    output:
+        aln="{enhancer}/tcoffee.clustal",
+        tree="{enhancer}/tcoffee.tree"
+    shell: """
+    t_coffee -seq {input} -outfile {output.aln} -newtree {output.tree}
+    """
+
+rule mcoffee_align:
+    input:
+        "{enhancer}/localblast.fasta",
+    output:
+        aln="{enhancer}/mcoffee.clustal",
+        tree="{enhancer}/mcoffee.tree"
+    shell: """
+    t_coffee \
+        -method ktup_msa clustalo_msa clustalw2_msa mafftdef_msa dialigntx_msa muscle_msa t_coffee_msa \
+        -seq {input} -outfile {output.aln} -newtree {output.tree}
+    """
+
 rule get_phylogeny:
     input:
         seqs="{enhancer}/localblast.fasta",
@@ -121,18 +168,18 @@ rule strip_internal_nodes:
 rule fastml_reconstruction:
     input:
         tree="{enhancer}/mammals.leaves.tree",
-        seqs="{enhancer}/clustalo.fasta",
+        seqs="{enhancer}/{aligner}.fasta",
     output:
-        isdone="{enhancer}/fastml_done",
-        log="{enhancer}/FastML/fastml.std",
-        seqs="{enhancer}/FastML/seq.marginal_IndelAndChars.txt",
-        tree="{enhancer}/FastML/tree.newick.txt",
+        isdone="{enhancer}/fastml-{aligner}_done",
+        log="{enhancer}/FastML-{aligner}/fastml.std",
+        seqs="{enhancer}/FastML-{aligner}/seq.marginal_IndelAndChars.txt",
+        tree="{enhancer}/FastML-{aligner}/tree.newick.txt",
     shell:"""
-    rm -rf `dirname {output.isdone}`/FastML
+    rm -rf `dirname {output.log}`
     perl tools/FastML.v3.11/www/fastml/FastML_Wrapper.pl \
         --MSA_File $PWD/{input.seqs} \
         --seqType NUC \
-        --outdir $PWD/`dirname {output.isdone}`/FastML \
+        --outdir $PWD/`dirname {output.log}` \
         --Tree $PWD/{input.tree} \
         --indelCutOff 0.9 \
         --optimizeBL no
@@ -153,6 +200,25 @@ rule exists:
     output: touch("{dir}/exists")
 
 localrules: exists
+
+rule merge_reconstructions:
+    input:
+        seqs=expand("{{enhancer}}/FastML-{aligner}/seq.marginal_IndelAndChars.txt",
+                aligner=['clustalo', 'clustalw', 'tcoffee', 'mcoffee', 'muscle']),
+        trees=expand("{{enhancer}}/FastML-{aligner}/tree.newick.txt",
+                aligner=['clustalo', 'clustalw', 'tcoffee', 'mcoffee', 'muscle']),
+
+        outdir_exists="{enhancer}/merged/exists",
+
+    output:
+        seq="{enhancer}/merged/merged_seq.fasta",
+        tree="{enhancer}/merged/tree.newick.txt",
+    conda: "envs/conda.env"
+    shell: """
+    cp {input.trees[0]} {output.tree}
+    python CallConsensus.py {output.seq} {input.seqs}
+
+    """
 
 rule ancestor_comparisons:
     input:
