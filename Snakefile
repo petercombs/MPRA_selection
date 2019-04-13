@@ -162,7 +162,8 @@ rule ancestor_comparisons:
         data=lambda wildcards: config['data_files'][wildcards.enhancer],
         script="ListAncestorsComparisons.py",
     output:
-        "enhancers/{enhancer}/FastML/selection_results.txt",
+        results="enhancers/{enhancer}/FastML/selection_results.txt",
+        tree="enhancers/{enhancer}/FastML/comparisons.tree",
     params:
         ename=lambda wildcards: (wildcards.enhancer.lower()
                 if 'Patwardhan' in config['data_files'][wildcards.enhancer]
@@ -172,8 +173,9 @@ rule ancestor_comparisons:
     python {input.script} \
         --enhancer-name {params.ename} \
         -t {input.primates} \
+        --output-tree {output.tree} \
         {input.seq} {input.tree} {input.data} \
-        > {output}
+        > {output.results}
     """
 
 rule all_selection:

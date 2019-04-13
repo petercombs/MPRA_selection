@@ -1,10 +1,16 @@
 from argparse import ArgumentParser
-from dendropy import Tree
+from dendropy import Tree, Taxon
 from Bio import SeqIO, AlignIO
 import pandas as pd
 from os import path
 from scipy.stats import fisher_exact
 from sys import stderr
+
+tree_labels = ["SKIP"]
+
+for i in range(1, 10):
+    for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+        tree_labels.append(c * i)
 
 
 def parse_args():
@@ -16,6 +22,7 @@ def parse_args():
         help="""Fasta file containing only the species we're interested in (for
         example, only primates)""",
     )
+    parser.add_argument("--output-tree", "-O", default=False)
     parser.add_argument("--enhancer-name", "-e", default=None)
     parser.add_argument("seqs")
     parser.add_argument("input_tree")
@@ -31,7 +38,11 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
     tree = Tree.get_from_path(args.input_tree, "newick")
+
     alignment = AlignIO.read(args.seqs, "fasta")
+    AlignIO.write(
+        alignment, path.join(path.dirname(args.seqs), "aln.clustal"), "clustal"
+    )
     alignment_posns = {rec.id: i for i, rec in enumerate(alignment)}
 
     if "GRCh38_ALL" in args.mpra_data:
@@ -69,7 +80,31 @@ if __name__ == "__main__":
             rec.id.replace("_", " ")
             for rec in SeqIO.parse(args.target_species_fasta, "fasta")
         }
-        tree.retain_taxa_with_labels(target_species)
+        outgroup_tree = tree.extract_tree_without_taxa_labels(target_species)
+        outgroup_root = tree.find_node(
+            lambda n: n.label == outgroup_tree.nodes()[0].label
+        )
+        outgroup_root.clear_child_nodes()
+        outgroup_root.taxon = Taxon(outgroup_root.label)
+        tree.taxon_namespace.append(outgroup_root.taxon)
+
+    i = 0
+    for edge in tree.edges():
+        if edge.head_node is outgroup_root:
+            edge.label = "N/A"
+            continue
+        edge.label = tree_labels[i]
+        i += 1
+
+    for node in tree:
+        node.annotations["comparison"] = node.incident_edges()[-1].label
+        if args.target_species_fasta and node is outgroup_root:
+            node.annotations["species"] = 'Outgroup'
+        else:
+            node.annotations["species"] = node.taxon.label if node.taxon else node.label
+
+    if args.output_tree:
+        tree.write_to_path(args.output_tree, "nexus", suppress_annotations=False)
 
     overall_du = 0
     overall_dd = 0
@@ -91,6 +126,9 @@ if __name__ == "__main__":
         dn = 0
         for i in range(align_len):
             if homo_seq[i] == "-":
+                continue
+            elif homo_seq[i] == "N":
+                homo_pos += 1
                 continue
             homo_pos += 1
             try:
@@ -126,8 +164,10 @@ if __name__ == "__main__":
         overall_du += du
         overall_dd += dd
         overall_dn += dn
-        print(parent_name, node_name, du, dn, "<-- UP")
-        print(parent_name, node_name, dd, dn, "<-- DOWN")
+        print(node.incident_edges()[-1].label, parent_name, node_name, du, dn, "<-- UP")
+        print(
+            node.incident_edges()[-1].label, parent_name, node_name, dd, dn, "<-- DOWN"
+        )
 
     pu = len(mpra_data.query("Value > 0 and pval < .05"))
     pd = len(mpra_data.query("Value < 0 and pval < .05"))
