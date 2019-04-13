@@ -61,7 +61,12 @@ if __name__ == "__main__":
             index=pd.MultiIndex.from_arrays(
                 [mpra_data.Element, mpra_data.pos, mpra_data.Alt]
             ),
-            data={"Value": list(mpra_data.Value), "pval": list(mpra_data["P-Value"])},
+            data={
+                "ref": list(mpra_data["Ref"]),
+                "OldPos": list(mpra_data["Position"]),
+                "Value": list(mpra_data.Value),
+                "pval": list(mpra_data["P-Value"]),
+            },
             # We need to cast to a list to get it to work with the reindexing
         )
     else:
@@ -74,6 +79,9 @@ if __name__ == "__main__":
             index_col=["Element", "pos", "Alt"],
         )
 
+    mpra_data.loc[args.enhancer_name].to_csv(
+        path.join(path.dirname(args.input_tree), "mpra_data.tsv"), sep="\t"
+    )
     print(tree.as_string("newick"))
     if args.target_species_fasta:
         target_species = {
