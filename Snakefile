@@ -26,6 +26,7 @@ rule blast_sequence:
         seq="{enhancer}/sequence.fasta",
     output:
         "{enhancer}/alllocalblast.tsv"
+    conda: "envs/conda.env"
     shell: """
     module load blast
     blastn -db refseq_genomic \
@@ -42,6 +43,7 @@ rule filter_blast:
         taxidnodes="Reference/mammals.dmp",
     output:
         "{enhancer}/localblast_withdups.fasta"
+    conda: "envs/conda.env"
     shell:"""
       cat {input.blastout} \
       | python FilterTaxID.py \
@@ -61,6 +63,7 @@ rule primates_fasta:
         taxidnodes="Reference/mammals.dmp",
     output:
         "{enhancer}/primates_withdups.fasta"
+    conda: "envs/conda.env"
     shell:"""
       cat {input.blastout} \
       | python FilterTaxID.py \
@@ -179,6 +182,7 @@ rule strip_internal_nodes:
         "{tree}.tree"
     output:
         "{tree}.leaves.tree"
+    conda: "envs/conda.env"
     shell: """
     sed 's/[0-9][0-9_A-Za-z]*:/:/g' < {input} \
         | sed 's/\[&R\] //' \
@@ -212,6 +216,7 @@ rule sequence_from_file:
         exists="enhancers/{enhancer}/exists",
     output:
         "enhancers/{enhancer}/sequence.fasta"
+    conda: "envs/conda.env"
     shell: """
     python ExtractSequenceFromDataFile.py {wildcards.enhancer} {input.data} > {output}
     """
