@@ -1,3 +1,4 @@
+mammals = "40674"
 primates = "9443"
 rodents = "314147" # and rabbits
 human = "9606"
@@ -6,13 +7,15 @@ exclude_taxids = "{human}".format(human=human)
 
 configfile: "config.yaml"
 
+target_fasta_file='localblast'
 rule reduce_to_mammals:
     input: "Reference/nodes.dmp"
     output: "Reference/mammals.dmp"
+    conda: "envs/conda.env"
     shell: """
     python FilterTaxID.py \
         --delimiter "|" \
-        --include 40674 \
+        --include {mammals} \
         -k 1 \
         {input} {input} \
         > {output}
@@ -91,16 +94,18 @@ rule dedup_blast:
 
 rule clustalo_align:
     input:
-        "{enhancer}/localblast.fasta",
+        "{enhancer}/{target}_withsupport.fasta",
     output:
-        "{enhancer}/clustalo.fasta",
+        "{enhancer}/{target}_clustalo.fasta",
+    conda: "envs/conda.env"
     shell: "clustalo --force -i {input} -o {output} -v"
 
 rule clustalw_align:
     input:
-        "{enhancer}/localblast.fasta",
+        "{enhancer}/{target}_withsupport.fasta",
     output:
-        "{enhancer}/clustalw.clustal",
+        "{enhancer}/{target}_clustalw.clustal",
+    conda: "envs/conda.env"
     shell: "clustalw -infile={input} -align -outfile={output} "
 
 rule clustal_to_fasta:
@@ -116,27 +121,41 @@ rule clustal_to_fasta:
 
 rule muscle_align:
     input:
-        "{enhancer}/localblast.fasta",
+        "{enhancer}/{target}_withsupport.fasta",
     output:
-        "{enhancer}/muscle.fasta",
+        "{enhancer}/{target}_muscle.fasta",
+    conda: "envs/conda.env"
     shell: "muscle -in {input} -out {output} -diags "
 
 rule tcoffee_align:
     input:
-        "{enhancer}/localblast.fasta",
+        "{enhancer}/{target}_withsupport.fasta",
     output:
-        aln="{enhancer}/tcoffee.clustal",
-        tree="{enhancer}/tcoffee.tree"
+        aln="{enhancer}/{target}_tcoffee.clustal",
+        tree="{enhancer}/{target}_tcoffee.tree"
+    conda: "envs/conda.env"
+    shell: """
+    t_coffee -seq {input} -outfile {output.aln} -newtree {output.tree}
+    """
+
+rule merged_tcoffee_align:
+    input:
+        "{enhancer}/merged/merged_seq.fasta",
+    output:
+        aln="{enhancer}/merged/merged_aligned.clustal",
+        tree="{enhancer}/merged/tcoffee.tree"
+    conda: "envs/conda.env"
     shell: """
     t_coffee -seq {input} -outfile {output.aln} -newtree {output.tree}
     """
 
 rule mcoffee_align:
     input:
-        "{enhancer}/localblast.fasta",
+        "{enhancer}/{target}_withsupport.fasta",
     output:
-        aln="{enhancer}/mcoffee.clustal",
-        tree="{enhancer}/mcoffee.tree"
+        aln="{enhancer}/{target}_mcoffee.clustal",
+        tree="{enhancer}/{target}_mcoffee.tree"
+    conda: "envs/conda.env"
     shell: """
     t_coffee \
         -method ktup_msa clustalo_msa clustalw2_msa mafftdef_msa dialigntx_msa muscle_msa t_coffee_msa \
@@ -145,12 +164,13 @@ rule mcoffee_align:
 
 rule get_phylogeny:
     input:
-        seqs="{enhancer}/localblast.fasta",
+        seqs="{enhancer}/{target}.fasta",
         tree="Reference/nature05634-s2-revised.txt",
     output:
-        newickunscaled="{enhancer}/mammals.unscaled.tree",
-        newick="{enhancer}/mammals.tree",
-        nexus="{enhancer}/mammals.nexus",
+        newickunscaled="{enhancer}/{target}.unscaled.tree",
+        newick="{enhancer}/{target}.tree",
+        nexus="{enhancer}/{target}.nexus",
+        fasta="{enhancer}/{target}_withsupport.fasta",
     conda: "envs/conda.env"
     shell: "python GetPhylogeny.py {input} {output}"
 

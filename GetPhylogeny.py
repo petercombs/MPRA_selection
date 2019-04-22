@@ -21,6 +21,8 @@ species_replacements = [
     ("Plecturocebus_moloch", "Callicebus_moloch"),
 ]
 
+replacement_dict = {b: a for a, b in species_replacements}
+
 if __name__ == "__main__":
     recs = {rec.id: rec for rec in SeqIO.parse(argv[1], "fasta")}
     species = {recid for recid in recs if not recid[-1].isnumeric()}
@@ -52,4 +54,13 @@ if __name__ == "__main__":
     print(
         tree.as_string("nexus").replace("*", "").replace('"', "").replace("'", ""),
         file=open(argv[5], "w"),
+    )
+
+    SeqIO.write(
+        [
+            recs[replacement_dict.get(spec, spec)]
+            for spec in species.intersection(tree_taxa)
+        ],
+        open(argv[6], "w"),
+        "fasta",
     )
