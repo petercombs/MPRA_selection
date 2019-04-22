@@ -56,6 +56,27 @@ rule filter_blast:
       > {output}
       """
 
+rule mammals_fasta:
+    input:
+        blastout = "{enhancer}/alllocalblast.tsv",
+        seq="{enhancer}/sequence.fasta",
+        taxidnodes="Reference/mammals.dmp",
+    output:
+        "{enhancer}/mammals_withdups.fasta"
+    conda: "envs/conda.env"
+    shell:"""
+      cat {input.blastout} \
+      | python FilterTaxID.py \
+            --taxid-column 3 \
+            --include {mammals} \
+            --output-fasta \
+            {input.taxidnodes} - \
+      | cat - <(perl -pe 's/>.*/>Homo_sapiens original sequence 100/' {input.seq}) \
+      > {output}
+      """
+
+
+
 rule primates_fasta:
     input:
         blastout = "{enhancer}/alllocalblast.tsv",
@@ -192,12 +213,13 @@ rule strip_internal_nodes:
 rule fastml_reconstruction:
     input:
         tree="{enhancer}/mammals.leaves.tree",
-        seqs="{enhancer}/{aligner}.fasta",
+        seqs="{enhancer}/{target}_{aligner}.fasta",
     output:
-        isdone="{enhancer}/fastml-{aligner}_done",
-        log="{enhancer}/FastML-{aligner}/fastml.std",
-        seqs="{enhancer}/FastML-{aligner}/seq.marginal_IndelAndChars.txt",
-        tree="{enhancer}/FastML-{aligner}/tree.newick.txt",
+        isdone="{enhancer}/fastml-{target}-{aligner}_done",
+        log="{enhancer}/FastML-{target}-{aligner}/fastml.std",
+        seqs="{enhancer}/FastML-{target}-{aligner}/seq.marginal_IndelAndChars.txt",
+        tree="{enhancer}/FastML-{target}-{aligner}/tree.newick.txt",
+    conda: "envs/conda.env"
     shell:"""
     rm -rf `dirname {output.log}`
     perl tools/FastML.v3.11/www/fastml/FastML_Wrapper.pl \
@@ -228,9 +250,11 @@ localrules: exists
 
 rule merge_reconstructions:
     input:
-        seqs=expand("{{enhancer}}/FastML-{aligner}/seq.marginal_IndelAndChars.txt",
+        seqs=expand("{{enhancer}}/FastML-{target}-{aligner}/seq.marginal_IndelAndChars.txt",
+                target=['mammals'],
                 aligner=['clustalo', 'clustalw', 'tcoffee', 'mcoffee', 'muscle']),
-        trees=expand("{{enhancer}}/FastML-{aligner}/tree.newick.txt",
+        trees=expand("{{enhancer}}/FastML-{target}-{aligner}/tree.newick.txt",
+                target=['mammals'],
                 aligner=['clustalo', 'clustalw', 'tcoffee', 'mcoffee', 'muscle']),
 
         outdir_exists="{enhancer}/merged/exists",
@@ -269,9 +293,42 @@ rule ancestor_comparisons:
         > {output.results}
     """
 
+rule merged_ancestor_comparisons:
+    input:
+        primates="enhancers/{enhancer}/primates.fasta",
+        tree="enhancers/{enhancer}/merged/tree.newick.txt",
+        seq="enhancers/{enhancer}/merged/merged_aligned.fasta",
+        data=lambda wildcards: config['data_files'][wildcards.enhancer],
+        script="ListAncestorsComparisons.py",
+    output:
+        results="enhancers/{enhancer}/merged/selection_results.txt",
+        tree="enhancers/{enhancer}/merged/comparisons.tree",
+    params:
+        ename=lambda wildcards: (wildcards.enhancer.lower()
+                if 'Patwardhan' in config['data_files'][wildcards.enhancer]
+                else wildcards.enhancer),
+        data_style=lambda wildcards: config['data_styles'][wildcards.enhancer]
+
+    conda: "envs/conda.env"
+    shell: """
+    python {input.script} \
+        --enhancer-name {params.ename} \
+        --{params.data_style} \
+        -t {input.primates} \
+        --output-tree {output.tree} \
+        {input.seq} {input.tree} {input.data} \
+        > {output.results}
+    """
+
+rule all_mammal_seqs:
+    input:
+        expand("enhancers/{enhancer}/mammals.fasta",
+                enhancer=config["data_files"].keys(),
+        )
+
 rule all_selection:
     input:
-        expand("enhancers/{enhancer}/{recon}/selection_results.txt",
+        expand("enhancers/{enhancer}/{reconstruction}/selection_results.txt",
                 enhancer=config["data_files"].keys(),
-                recon=["FastML"],
+                reconstruction=["merged"],
         )

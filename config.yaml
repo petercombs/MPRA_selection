@@ -31,6 +31,39 @@ data_files:
     ZRSh-13: MPRA/GRCh38_ALL.tsv
     ZRSh-13h2: MPRA/GRCh38_ALL.tsv
 
+data_styles:
+    ALDOB: patwardhan
+    ECR11: patwardhan
+    BCL11A: kirchner
+    F9: kirchner
+    FOXE1: kirchner
+    GP1BA: kirchner
+    HBB: kirchner
+    HBG1: kirchner
+    HNF4A: kirchner
+    IRF4: kirchner
+    IRF6: kirchner
+    LDLR: kirchner
+    LDLR.2: kirchner
+    MSMB: kirchner
+    MYCrs11986220: kirchner
+    MYCrs6983267: kirchner
+    PKLR-24h: kirchner
+    PKLR-48h: kirchner
+    RET: kirchner
+    SORT1: kirchner
+    SORT1.2: kirchner
+    SORT1-flip: kirchner
+    TCF7L2: kirchner
+    TERT-GAa: kirchner
+    TERT-GBM: kirchner
+    TERT-GSc: kirchner
+    TERT-HEK: kirchner
+    UC88: kirchner
+    ZFAND3: kirchner
+    ZRSh-13: kirchner
+    ZRSh-13h2: kirchner
+
 
 promoters : [
     TERT-GAa, TERT-GBM, TERT-GSc, TERT-HEK, LDLR, LDLR.2, HBB, HBG1, HNF4A,

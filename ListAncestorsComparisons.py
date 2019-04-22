@@ -1,4 +1,4 @@
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentTypeError
 from dendropy import Tree, Taxon
 from Bio import SeqIO, AlignIO
 import pandas as pd
@@ -22,16 +22,85 @@ def parse_args():
         help="""Fasta file containing only the species we're interested in (for
         example, only primates)""",
     )
+    data_style = parser.add_argument_group(
+        "MPRA Data Format",
+        (
+            "Either choose from a pre-specified data format or specify all the"
+            " important columns"
+        ),
+    )
+    data_style.add_argument(
+        "--patwardhan",
+        dest="data_style",
+        action="store_const",
+        const="patwardhan",
+        help="Data format matches Patwardhan et al 2012 (Nat Biotech)",
+    )
+    data_style.add_argument(
+        "--kirchner",
+        dest="data_style",
+        action="store_const",
+        const="kirchner",
+        help="Data format matches Kirchner et al 2018 (bioRxiv)",
+    )
+    data_style.add_argument("--alt-column", type=int)
+    data_style.add_argument("--header", action="store_const", default=None,
+                            const=0)
+    data_style.add_argument("--no-header", dest="header", action="store_const",
+                            const=None)
+    data_style.add_argument("--element-column", type=int)
+    data_style.add_argument("--position-column", type=int)
+    data_style.add_argument("--value-column", type=int)
+    data_style.add_argument("--pval-column", type=int)
+
     parser.add_argument("--output-tree", "-O", default=False)
     parser.add_argument("--enhancer-name", "-e", default=None)
     parser.add_argument("seqs")
     parser.add_argument("input_tree")
     parser.add_argument("mpra_data")
     args = parser.parse_args()
+
     if args.enhancer_name is None:
         # By default, we're going to assume that the ancestral reconstruction
         # program has its own directory within the enhancer.
         args.enhancer_name = path.basename(path.dirname(path.dirname(args.input_tree)))
+
+    if args.data_style == "patwardhan":
+        args.header = None
+        args.element_column = 0
+        args.position_column = 1
+        args.alt_column = 2
+        args.value_column = 3
+        args.pval_column = 4
+    elif args.data_style == "kirchner":
+        args.header = 0
+        args.element_column = 9
+        args.position_column = 1
+        args.alt_column = 3
+        args.value_column = 7
+        args.pval_column = 8
+    elif None in (
+        args.element_column,
+        args.position_column,
+        args.alt_column,
+        args.value_column,
+        args.pval_column,
+    ):
+        raise ArgumentTypeError(
+            "One of the data columns has not been specified:"
+            + str(
+                {
+                    "Element column": args.element_column,
+                    "Position column": args.position_column,
+                    "Alternate base column": args.alt_column,
+                    "MPRA Value Column": args.value_column,
+                    "P-value column": args.pval_column,
+                }
+            )
+        )
+
+    if args.header == False:
+        args.header = None
     return args
 
 
@@ -45,6 +114,7 @@ if __name__ == "__main__":
     )
     alignment_posns = {rec.id: i for i, rec in enumerate(alignment)}
 
+    """
     if "GRCh38_ALL" in args.mpra_data:
         mpra_data = pd.read_csv(args.mpra_data, sep="\t")
         old_mpra_data = mpra_data
@@ -78,6 +148,34 @@ if __name__ == "__main__":
             names=["Element", "pos", "Alt", "Value", "pval"],
             index_col=["Element", "pos", "Alt"],
         )
+        """
+    in_data = pd.read_csv(args.mpra_data, sep="\t", header=args.header)
+    in_data["pos"] = (
+        in_data.iloc[:, args.position_column]
+        - in_data.iloc[:, args.position_column].min()
+        + 1
+    )
+    print(
+        pd.np.shape(in_data.iloc[:, args.element_column]),
+        pd.np.shape(in_data.pos),
+        pd.np.shape(in_data.iloc[:, args.alt_column]),
+        file=stderr,
+    )
+    index = pd.MultiIndex.from_arrays(
+        [
+        in_data.iloc[:, args.element_column],
+        in_data.pos,
+        in_data.iloc[:, args.alt_column],
+        ]
+    )
+
+    mpra_data = pd.DataFrame(
+        index=index,
+        data={
+            "Value": list(in_data.iloc[:, args.value_column]),
+            "pval": list(in_data.iloc[:, args.pval_column]),
+        },
+    )
 
     mpra_data.loc[args.enhancer_name].to_csv(
         path.join(path.dirname(args.input_tree), "mpra_data.tsv"), sep="\t"
@@ -107,7 +205,7 @@ if __name__ == "__main__":
     for node in tree:
         node.annotations["comparison"] = node.incident_edges()[-1].label
         if args.target_species_fasta and node is outgroup_root:
-            node.annotations["species"] = 'Outgroup'
+            node.annotations["species"] = "Outgroup"
         else:
             node.annotations["species"] = node.taxon.label if node.taxon else node.label
 
