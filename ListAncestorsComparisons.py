@@ -157,12 +157,6 @@ if __name__ == "__main__":
         - in_data.iloc[:, args.position_column].min()
         + 1
     )
-    print(
-        pd.np.shape(in_data.iloc[:, args.element_column]),
-        pd.np.shape(in_data.pos),
-        pd.np.shape(in_data.iloc[:, args.alt_column]),
-        file=stderr,
-    )
     index = pd.MultiIndex.from_arrays(
         [
             in_data.iloc[:, args.element_column],
