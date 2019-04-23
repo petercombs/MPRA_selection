@@ -1,5 +1,6 @@
 from argparse import ArgumentParser, ArgumentTypeError
 from dendropy import Tree, Taxon
+from dendropy.utility.error import SeedNodeDeletionException
 from Bio import SeqIO, AlignIO
 import pandas as pd
 from os import path
@@ -150,6 +151,7 @@ if __name__ == "__main__":
         )
         """
     in_data = pd.read_csv(args.mpra_data, sep="\t", header=args.header)
+    in_data = in_data[in_data.iloc[:, args.element_column] == args.enhancer_name]
     in_data["pos"] = (
         in_data.iloc[:, args.position_column]
         - in_data.iloc[:, args.position_column].min()
@@ -163,9 +165,9 @@ if __name__ == "__main__":
     )
     index = pd.MultiIndex.from_arrays(
         [
-        in_data.iloc[:, args.element_column],
-        in_data.pos,
-        in_data.iloc[:, args.alt_column],
+            in_data.iloc[:, args.element_column],
+            in_data.pos,
+            in_data.iloc[:, args.alt_column],
         ]
     )
 
@@ -186,13 +188,22 @@ if __name__ == "__main__":
             rec.id.replace("_", " ")
             for rec in SeqIO.parse(args.target_species_fasta, "fasta")
         }
-        outgroup_tree = tree.extract_tree_without_taxa_labels(target_species)
-        outgroup_root = tree.find_node(
-            lambda n: n.label == outgroup_tree.nodes()[0].label
-        )
-        outgroup_root.clear_child_nodes()
-        outgroup_root.taxon = Taxon(outgroup_root.label)
-        tree.taxon_namespace.append(outgroup_root.taxon)
+        try:
+            outgroup_tree = tree.extract_tree_without_taxa_labels(target_species)
+            outgroup_root = tree.find_node(
+                lambda n: n.label == outgroup_tree.nodes()[0].label
+            )
+            outgroup_root.clear_child_nodes()
+            outgroup_root.taxon = Taxon(outgroup_root.label)
+            tree.taxon_namespace.append(outgroup_root.taxon)
+        except SeedNodeDeletionException:
+            print(
+                "WARNING: No species were provided that are not in the target group",
+                file=stderr,
+            )
+            outgroup_root = None
+    else:
+        outgroup_root = None
 
     i = 0
     for edge in tree.edges():
