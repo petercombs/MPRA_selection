@@ -108,7 +108,7 @@ rule dedup_blast:
         default_score = 0
         best_recs = {}
         for rec in SeqIO.parse(input.seqs, 'fasta'):
-            score = float(rec.description.split()[-1])
+            score = float(rec.description.split()[-1]) * len(rec.seq)
             rec.description = rec.id
             if best_recs.get(rec.id, (default_score, None))[0] < score:
                 best_recs[rec.id] = (score, rec)
