@@ -44,10 +44,10 @@ def parse_args():
         help="Data format matches Kirchner et al 2018 (bioRxiv)",
     )
     data_style.add_argument("--alt-column", type=int)
-    data_style.add_argument("--header", action="store_const", default=None,
-                            const=0)
-    data_style.add_argument("--no-header", dest="header", action="store_const",
-                            const=None)
+    data_style.add_argument("--header", action="store_const", default=None, const=0)
+    data_style.add_argument(
+        "--no-header", dest="header", action="store_const", const=None
+    )
     data_style.add_argument("--element-column", type=int)
     data_style.add_argument("--position-column", type=int)
     data_style.add_argument("--value-column", type=int)
@@ -99,7 +99,7 @@ def parse_args():
             )
         )
 
-    if args.header == False:
+    if args.header is False:
         args.header = None
     return args
 
