@@ -187,9 +187,13 @@ if __name__ == "__main__":
             outgroup_root = tree.find_node(
                 lambda n: n.label == outgroup_tree.nodes()[0].label
             )
-            outgroup_root.clear_child_nodes()
-            outgroup_root.taxon = Taxon(outgroup_root.label)
-            tree.taxon_namespace.append(outgroup_root.taxon)
+            if outgroup_root.child_nodes():
+                # There's some kind of error that happens if there's only one
+                # outgroup species
+                outgroup_root.clear_child_nodes()
+                outgroup_root.taxon = Taxon(outgroup_root.label)
+            else:
+                pass
         except SeedNodeDeletionException:
             print(
                 "WARNING: No species were provided that are not in the target group",
