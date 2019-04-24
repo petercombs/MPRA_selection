@@ -21,9 +21,39 @@ rule reduce_to_mammals:
         > {output}
     """
 
+rule repmask_input:
+    input:
+        seq='{enhancer}/{file}.fasta'
+    output:
+        seq='{enhancer}/{file}.fasta.masked',
+        joined='{enhancer}/{file}_withmasked.fasta'
+    conda: "envs/conda.env"
+    shell: """
+    body () {{
+        IFS= read -r header
+            printf '%s\n' "$header"
+            "$@"
+    }}
+
+    RepeatMasker \
+        -lib Reference/RepBase24.03.fasta/all.fasta \
+        -s {input}
+
+    if [ `grep -c "no repetitive sequences detected" {input}.out` -gt 0 ]
+    then
+    cp {input} {output.seq}
+    fi
+
+    cat  {output.seq} \
+        | body sed 's/N//g' \
+        | sed '/^$/d' \
+        | cat {input} -  \
+        > {output.joined}
+    """
+
 rule blast_sequence:
     input:
-        seq="{enhancer}/sequence.fasta",
+        seq="{enhancer}/sequence_withmasked.fasta",
     output:
         "{enhancer}/alllocalblast.tsv"
     conda: "envs/conda.env"
@@ -188,7 +218,7 @@ rule mcoffee_align:
 
 rule get_phylogeny:
     input:
-        seqs="{enhancer}/{target}.fasta",
+        seqs="{enhancer}/{target}.fasta.masked",
         tree="Reference/nature05634-s2-revised.txt",
     output:
         newickunscaled="{enhancer}/{target}.unscaled.tree",
@@ -323,6 +353,12 @@ rule merged_ancestor_comparisons:
 rule all_mammal_seqs:
     input:
         expand("enhancers/{enhancer}/mammals.fasta",
+                enhancer=config["data_files"].keys(),
+        )
+
+rule all_repmasked:
+    input:
+        expand("enhancers/{enhancer}/sequence_withmasked.fasta",
                 enhancer=config["data_files"].keys(),
         )
 

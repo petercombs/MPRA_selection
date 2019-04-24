@@ -1,5 +1,6 @@
 from sys import stderr, argv
 from Bio import SeqIO
+from Bio.Seq import Seq
 from dendropy import Tree
 
 species_replacements = [
@@ -56,10 +57,14 @@ if __name__ == "__main__":
         file=open(argv[5], "w"),
     )
 
+    for spec in species.intersection(tree_taxa):
+        rec = recs[replacement_dict.get(spec, spec)]
+        rec.seq = Seq(str(rec.seq).replace('N', '').replace('-', ''))
     SeqIO.write(
         [
             recs[replacement_dict.get(spec, spec)]
             for spec in species.intersection(tree_taxa)
+            if len(recs[replacement_dict.get(spec, spec)].seq)
         ],
         open(argv[6], "w"),
         "fasta",

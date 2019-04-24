@@ -121,7 +121,7 @@ if __name__ == "__main__":
                     ">{} {}\n{}".format(
                         species,
                         " ".join(columns[1:-1]),  # Other data
-                        "\n".join(tw.wrap(columns[-1], 100, break_on_hyphens=False)),
+                        "\n".join(tw.wrap(columns[-1].replace('-', ''), 100, break_on_hyphens=False)),
                         # Sequence wrapped to 100
                     )
                 )

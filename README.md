@@ -10,3 +10,14 @@ selection in the saturation mutagenesis data from the Ahithuv lab [1].
 
 [1] https://mpra.gs.washington.edu/satMutMPRA/ and https://www.biorxiv.org/content/10.1101/505362v1
 
+
+## Prerequisites
+
+The goal of the project is to have a basically turnkey solution. To that end,
+as many of the dependencies as possible are loaded into a conda environment.
+However, you will still need a copy of the RepBase database.  Instructions on
+how to load that in to come, but for now, I expect it to be in
+Reference/RepBase24.03.fasta/all.fasta
+
+    cat *.ref appendix/*.ref > all.fasta
+
