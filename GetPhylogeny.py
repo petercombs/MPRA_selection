@@ -29,6 +29,7 @@ def parse_args():
     from argparse import ArgumentParser
 
     parser = ArgumentParser()
+    parser.add_argument("--targets", default=False)
     parser.add_argument("seqs")
     parser.add_argument("in_tree")
     parser.add_argument("out_base_name")
@@ -61,6 +62,16 @@ if __name__ == "__main__":
     print(species.difference(tree_taxa), file=stderr)
 
     tree.retain_taxa_with_labels([s.replace("_", " ") for s in species])
+    if args.targets:
+        orig_tree = Tree(tree)
+        targets = {rec.id for rec in SeqIO.parse(args.targets, "fasta")}
+        target_labels = [l.replace("_", " ") for l in targets.intersection(tree_taxa)]
+        target_root = tree.mrca(
+            taxon_labels=target_labels
+        )
+        tree = Tree(seed_node=target_root.parent_node)
+
+    tree_taxa = {tx.label.replace(" ", "_") for tx in tree.taxon_namespace}
     for to_spec, from_spec in species_replacements:
         n = tree.find_node_with_taxon_label(from_spec.replace("_", " "))
         if n:
