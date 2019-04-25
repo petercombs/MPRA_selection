@@ -222,13 +222,18 @@ rule get_phylogeny:
     input:
         seqs="{enhancer}/{target}.fasta.masked",
         tree="Reference/nature05634-s2-revised.txt",
+        primates="{enhancer}/primates.fasta",
     output:
         newickunscaled="{enhancer}/{target}.unscaled.tree",
         newick="{enhancer}/{target}.tree",
         nexus="{enhancer}/{target}.nexus",
         fasta="{enhancer}/{target}_withsupport.fasta",
     conda: "envs/conda.env"
-    shell: "python GetPhylogeny.py {input} {output}"
+    shell: """
+    python GetPhylogeny.py \
+        --targets {input.primates} \
+        {input.seqs} {input.tree} {wildcards.enhancer}/{wildcards.target}
+    """
 
 rule strip_internal_nodes:
     input:

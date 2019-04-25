@@ -1,4 +1,4 @@
-from sys import stderr, argv
+from sys import stderr
 from Bio import SeqIO
 from Bio.Seq import Seq
 from dendropy import Tree
@@ -24,14 +24,38 @@ species_replacements = [
 
 replacement_dict = {b: a for a, b in species_replacements}
 
+
+def parse_args():
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser()
+    parser.add_argument("seqs")
+    parser.add_argument("in_tree")
+    parser.add_argument("out_base_name")
+    args = parser.parse_args()
+    return args
+
+
 if __name__ == "__main__":
-    recs = {rec.id: rec for rec in SeqIO.parse(argv[1], "fasta")}
+
+    args = parse_args()
+
+    recs = {rec.id: rec for rec in SeqIO.parse(args.seqs, "fasta")}
+
+    empty_seqs = []
+    for recid in recs:
+        recs[recid].seq = Seq(str(recs[recid].seq).replace("N", "").replace("-", ""))
+        if len(recs[recid].seq) == 0:
+            empty_seqs.append(recid)
+    for recid in empty_seqs:
+        recs.pop(recid)
+
     species = {recid for recid in recs if not recid[-1].isnumeric()}
     for from_spec, to_spec in species_replacements:
         if from_spec in species:
             species.remove(from_spec)
             species.add(to_spec)
-    tree = Tree.get_from_path(argv[2], schema="nexus")
+    tree = Tree.get_from_path(args.in_tree, schema="nexus")
     tree_taxa = {tx.label.replace(" ", "_") for tx in tree.taxon_namespace}
 
     print(species.difference(tree_taxa), file=stderr)
@@ -43,29 +67,25 @@ if __name__ == "__main__":
             n.taxon.label = to_spec
     print(
         tree.as_string("newick").replace("*", "").replace('"', "").replace("'", ""),
-        file=open(argv[3], "w"),
+        file=open(args.out_base_name + ".unscaled.tree", "w"),
     )
     tree.scale_edges(1 / 91.6)  # Approximate age when rodents diverged from primates
     print(
         tree.as_string("newick").replace("*", "").replace('"', "").replace("'", ""),
-        file=open(argv[4], "w"),
+        file=open(args.out_base_name + ".tree", "w"),
     )
     tree.taxon_namespace.clear()
     tree.update_taxon_namespace()
     print(
         tree.as_string("nexus").replace("*", "").replace('"', "").replace("'", ""),
-        file=open(argv[5], "w"),
+        file=open(args.out_base_name + ".nexus", "w"),
     )
 
-    for spec in species.intersection(tree_taxa):
-        rec = recs[replacement_dict.get(spec, spec)]
-        rec.seq = Seq(str(rec.seq).replace('N', '').replace('-', ''))
     SeqIO.write(
         [
             recs[replacement_dict.get(spec, spec)]
             for spec in species.intersection(tree_taxa)
-            if len(recs[replacement_dict.get(spec, spec)].seq)
         ],
-        open(argv[6], "w"),
+        open(args.out_base_name + "_withsupport.fasta", "w"),
         "fasta",
     )
