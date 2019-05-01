@@ -65,11 +65,12 @@ if __name__ == "__main__":
     if args.targets:
         orig_tree = Tree(tree)
         targets = {rec.id for rec in SeqIO.parse(args.targets, "fasta")}
-        target_labels = [l.replace("_", " ") for l in targets.intersection(tree_taxa)]
-        target_root = tree.mrca(
-            taxon_labels=target_labels
-        )
-        tree = Tree(seed_node=target_root.parent_node)
+        target_labels = [
+            l.replace("_", " ")
+            for l in targets.intersection(tree_taxa).intersection(species)
+        ]
+        target_root = tree.mrca(taxon_labels=target_labels)
+        tree = Tree(seed_node=(target_root.parent_node or target_root))
 
     tree_taxa = {tx.label.replace(" ", "_") for tx in tree.taxon_namespace}
     for to_spec, from_spec in species_replacements:
