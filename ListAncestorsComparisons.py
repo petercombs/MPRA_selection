@@ -233,7 +233,7 @@ if __name__ == "__main__":
 
         align_len = len(alignment[0])
         homo_pos = 0
-        homo_seq = alignment[alignment_posns["Homo_sapiens"]]
+        homo_seq = alignment[alignment_posns["original"]]
         parent_seq = alignment[alignment_posns[parent_name]]
         child_seq = alignment[alignment_posns[node_name]]
         du = 0
@@ -279,9 +279,14 @@ if __name__ == "__main__":
         overall_du += du
         overall_dd += dd
         overall_dn += dn
-        print(node.incident_edges()[-1].label, parent_name, node_name, du, dn, "<-- UP")
         print(
-            node.incident_edges()[-1].label, parent_name, node_name, dd, dn, "<-- DOWN"
+            node.incident_edges()[-1].label,
+            parent_name,
+            node_name,
+            f"{du}U",
+            f"{dn}N",
+            f"{dd}D",
+            sep="\t",
         )
 
     pu = len(mpra_data.query("Value > 0 and pval < .05"))

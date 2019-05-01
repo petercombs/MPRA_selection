@@ -304,7 +304,8 @@ rule merge_reconstructions:
     shell: """
     cp {input.trees[0]} {output.tree}
     python CallConsensus.py {output.seq} {input.seqs}
-
+    echo ">original" >> {output.seq}
+    awk "NR > 1" {input.original} >> {output.seq}
     """
 
 ruleorder: merge_reconstructions > repmask_input > propagate_masks > filter_blast > dedup_blast > clustalo_align > clustal_to_fasta > muscle_align
