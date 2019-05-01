@@ -393,4 +393,7 @@ rule all_selection:
         expand("enhancers/{enhancer}/{reconstruction}/selection_results.txt",
                 enhancer=config["data_files"].keys(),
                 reconstruction=["mammals",],
-        )
+        ),
+        expand("enhancers/{enhancer}/smith/selection_results.txt",
+                enhancer=['ECR11', 'ALDOB'],
+              ),
