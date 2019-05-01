@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+	<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+	<link rel="stylesheet" href="phylotree.js-0.1.9/phylotree.css">
+
+	<script src="//code.jquery.com/jquery.js"></script>
+	<script src="//netdna.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+	<script src="//d3js.org/d3.v3.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js" charset="utf-8"></script>
+	<script type='text/javascript' src='phylotree.js-0.1.9/phylotree.js'></script>
+
+<style type="text/css">
+	rect.bordered {
+		stroke: white;
+		stroke-width: 0.5px;
+	}
+
+	.tooltip{
+		position: absolute;
+		width: 160px;
+		height: 60px;
+		padding: 2px;
+		font: 12px sans-serif;
+		background: lightgreen;
+		border: 0px;
+		border-radius: 8px;
+		pointer-events: none;
+	}
+</style>
+</head>
+<body>
+	<svg id="tree_display" width=400 height=400> </svg>
+	<svg id="alignment_display" width=800 height=400> </svg>
+	<script type='text/javascript' src="stimpy.js"></script>
+
+</body>
+</html>
