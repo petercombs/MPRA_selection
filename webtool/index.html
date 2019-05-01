@@ -28,11 +28,24 @@
 		border-radius: 8px;
 		pointer-events: none;
 	}
+	.internal_label{
+		text-align: start;
+		baseline-shift: .6em;
+		font: 10px;
+	}
+	.base_label{
+		text-align: start;
+		baseline-shift: -.6em;
+		transform: translate(.5em,0em);
+	}
+	.node_label{
+		baseline-shift: .6em;
+	}
 </style>
 </head>
 <body>
 	<svg id="tree_display" width=400 height=400> </svg>
-	<svg id="alignment_display" width=800 height=400> </svg>
+	<svg id="alignment_display" width=1200 height=400> </svg>
 	<script type='text/javascript' src="stimpy.js"></script>
 
 </body>

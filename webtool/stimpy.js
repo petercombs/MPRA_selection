@@ -14,9 +14,10 @@ var nodeStyler = function (element, data) {
 				.text(data.internal_label)
 				.attr("dx", ".4em")
 				.attr("dy", ".3em")
-				.style("font-style", "italic")
-				.attr("text-anchor", "start")
-				.attr("alignment-baseline", "middle");
+				//.style("font-style", "italic")
+				//.attr("text-anchor", "start")
+				//.attr("alignment-baseline", "middle")
+			;
 
 			// If the internal label has the same label as the currently
 			// selected phyloreference, make it bolder and turn it blue.
@@ -116,10 +117,7 @@ var tooltip = d3.select("body").append("div")
 function update_selection(seqnames){
 	seqnames = seqnames.map(d=>d.name);
 	seqnames2 = []
-	console.log(seqnames);
 	seqnames.forEach(function(name){
-		console.log(name);
-		console.log(tree.get_node_by_name);
 		parname = tree.get_node_by_name(name).parent.name;
 		if (parname in seqnames){
 			seqnames2.push(name);
