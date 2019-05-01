@@ -196,10 +196,10 @@ rule tcoffee_align:
 
 rule merged_tcoffee_align:
     input:
-        "{enhancer}/merged/merged_seq.fasta",
+        "{enhancer}/{merged}/merged_seq.fasta",
     output:
-        aln="{enhancer}/merged/merged_aligned.clustal",
-        tree="{enhancer}/merged/tcoffee.tree"
+        aln="{enhancer}/{merged}/merged_aligned.clustal",
+        tree="{enhancer}/{merged}/tcoffee.tree"
     conda: "envs/conda.env"
     shell: """
     t_coffee -seq {input} -outfile {output.aln} -newtree {output.tree}
@@ -249,7 +249,7 @@ rule strip_internal_nodes:
 
 rule fastml_reconstruction:
     input:
-        tree="{enhancer}/mammals.leaves.tree",
+        tree="{enhancer}/{target}.leaves.tree",
         seqs="{enhancer}/{target}_{aligner}.fasta",
     output:
         isdone="{enhancer}/fastml-{target}-{aligner}_done",
@@ -287,24 +287,27 @@ localrules: exists
 
 rule merge_reconstructions:
     input:
-        seqs=expand("{{enhancer}}/FastML-{target}-{aligner}/seq.marginal_IndelAndChars.txt",
-                target=['mammals'],
+        original="{enhancer}/sequence.fasta",
+        seqs=lambda wildcards: expand("{enhancer}/FastML-{target}-{aligner}/seq.marginal_IndelAndChars.txt",
+                enhancer=[wildcards.enhancer],
+                target=[wildcards.target],
                 aligner=['clustalo', 'clustalw', 'tcoffee', 'mcoffee', 'muscle']),
-        trees=expand("{{enhancer}}/FastML-{target}-{aligner}/tree.newick.txt",
-                target=['mammals'],
+        trees=lambda wildcards: expand("{enhancer}/FastML-{target}-{aligner}/tree.newick.txt",
+                enhancer=[wildcards.enhancer],
+                target=[wildcards.target],
                 aligner=['clustalo', 'clustalw', 'tcoffee', 'mcoffee', 'muscle']),
-
-        outdir_exists="{enhancer}/merged/exists",
-
+        outdir_exists="{enhancer}/{target}/exists",
     output:
-        seq="{enhancer}/merged/merged_seq.fasta",
-        tree="{enhancer}/merged/tree.newick.txt",
+        seq="{enhancer}/{target}/merged_seq.fasta",
+        tree="{enhancer}/{target}/tree.newick.txt",
     conda: "envs/conda.env"
     shell: """
     cp {input.trees[0]} {output.tree}
     python CallConsensus.py {output.seq} {input.seqs}
 
     """
+
+ruleorder: merge_reconstructions > repmask_input > propagate_masks > filter_blast > dedup_blast > clustalo_align > clustal_to_fasta > muscle_align
 
 rule ancestor_comparisons:
     input:
@@ -333,13 +336,13 @@ rule ancestor_comparisons:
 rule merged_ancestor_comparisons:
     input:
         primates="enhancers/{enhancer}/primates.fasta",
-        tree="enhancers/{enhancer}/merged/tree.newick.txt",
-        seq="enhancers/{enhancer}/merged/merged_aligned.fasta",
+        tree="enhancers/{enhancer}/{merged}/tree.newick.txt",
+        seq="enhancers/{enhancer}/{merged}/merged_aligned_maskprop.fasta",
         data=lambda wildcards: config['data_files'][wildcards.enhancer],
         script="ListAncestorsComparisons.py",
     output:
-        results="enhancers/{enhancer}/merged/selection_results.txt",
-        tree="enhancers/{enhancer}/merged/comparisons.tree",
+        results="enhancers/{enhancer}/{merged}/selection_results.txt",
+        tree="enhancers/{enhancer}/{merged}/comparisons.tree",
     params:
         ename=lambda wildcards: (wildcards.enhancer.lower()
                 if 'Patwardhan' in config['data_files'][wildcards.enhancer]
@@ -373,5 +376,5 @@ rule all_selection:
     input:
         expand("enhancers/{enhancer}/{reconstruction}/selection_results.txt",
                 enhancer=config["data_files"].keys(),
-                reconstruction=["merged"],
+                reconstruction=["mammals",],
         )
