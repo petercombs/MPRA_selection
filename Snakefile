@@ -25,6 +25,7 @@ rule repmask_input:
     input:
         seq='{enhancer}/{file}.fasta'
     output:
+        stripped='{enhancer}/{file}.fasta.stripped',
         seq='{enhancer}/{file}.fasta.masked',
         joined='{enhancer}/{file}_withmasked.fasta'
     conda: "envs/conda.env"
@@ -35,9 +36,12 @@ rule repmask_input:
             "$@"
     }}
 
+    perl -pe 's/-//g' {input} > {output.stripped}
+
     RepeatMasker \
         -lib Reference/RepBase24.03.fasta/all.fasta \
-        -s {input}
+        -s {output.stripped}
+    mv {output.stripped}.masked {output.seq}
 
     if [ `grep -c "no repetitive sequences detected" {input}.out` -gt 0 ]
     then
@@ -45,10 +49,20 @@ rule repmask_input:
     fi
 
     cat  {output.seq} \
-        | body sed 's/N//g' \
+        | sed '/^[^>]/s/N//g' \
         | sed '/^$/d' \
         | cat {input} -  \
         > {output.joined}
+    """
+
+rule propagate_masks:
+    input:
+        aligned="{file}.fasta",
+        masked="{file}.fasta.masked",
+    output:
+        "{file}_maskprop.fasta",
+    shell: """
+    python PropagateMasks.py {input} {output}
     """
 
 rule blast_sequence:
@@ -215,12 +229,13 @@ rule mcoffee_align:
     shell: """
     t_coffee \
         -method ktup_msa clustalo_msa clustalw2_msa mafftdef_msa dialigntx_msa muscle_msa t_coffee_msa \
+        -n_core 10 \
         -seq {input} -outfile {output.aln} -newtree {output.tree}
     """
 
 rule get_phylogeny:
     input:
-        seqs="{enhancer}/{target}.fasta.masked",
+        seqs="{enhancer}/{target}.fasta",
         tree="Reference/nature05634-s2-revised.txt",
         primates="{enhancer}/primates.fasta",
     output:
