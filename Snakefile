@@ -41,11 +41,12 @@ rule repmask_input:
     RepeatMasker \
         -lib Reference/RepBase24.03.fasta/all.fasta \
         -s {output.stripped}
-    mv {output.stripped}.masked {output.seq}
 
-    if [ `grep -c "no repetitive sequences detected" {input}.out` -gt 0 ]
+    if [ `grep -c "no repetitive sequences detected" {output.stripped}.out` -gt 0 ]
     then
     cp {input} {output.seq}
+    else
+    mv {output.stripped}.masked {output.seq}
     fi
 
     cat  {output.seq} \
