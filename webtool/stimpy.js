@@ -1,4 +1,20 @@
 var nodeStyler = function (element, data) {
+	var baselabel = element.selectAll(".base_label");
+	if (baselabel.empty()){
+		var element_label = data.name;
+		if (data.hasOwnProperty('internal_label')){
+			element_label = data.internal_label;
+		}
+		else if (data.hasOwnProperty('label')){
+			element_label = data.label;
+		}
+		if (element_label.length > 0)
+		{
+			element.selectAll("text").classed('node_label', true);
+			var base_text = element.append("text").attr('id', 'base'+element_label).classed('base_label', true);
+		}
+
+	}
 	if(data.hasOwnProperty('internal_label')) {
 		// If the node has an internal label (see below), we display it
 		// next to the node by creating a new 'text' element.
@@ -46,8 +62,8 @@ d3.text('ECR11-smith.tree', function(d){
 				//"draw-size-bubbles": true,
 				"node-circle-size": (d)=>(2),
 			})
-		.spacing_x(30)
-		.spacing_y(30)
+		.spacing_x(40)
+		.spacing_y(40)
 		.layout();
 	;
 	_.each(tree.get_nodes(), function(node) {
@@ -192,11 +208,18 @@ function update_selection(seqnames){
 					(d.pos + 1) + "<br/>" +  "base - " + d.base + '<br /> seq - ' + d.seqname + "<br /> seqpos - " + d.seqpos)
 					.style("left", (d3.event.pageX + 5) + "px")
 					.style("top", (d3.event.pageY - 10) + "px");
+				for (species in all_seqs){
+					outspecies = species;
+					baselabel = d3.select('#base'+species);
+					if (baselabel.length)
+						baselabel.text(all_seqs[species][d.pos]);
+				}
 			})
 			.on("mouseout", function(d){
 				tooltip.transition()
 					.duration(500)
-					.style("opacity", 0)
+					.style("opacity", 0);
+				d3.selectAll(".base_label").text('');
 			});
 
 
