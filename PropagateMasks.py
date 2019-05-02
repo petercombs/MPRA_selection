@@ -13,7 +13,7 @@ if __name__ == "__main__":
     for recid, rec in masked_seqs.items():
         aligncol = 0
         for i, base in enumerate(rec.seq):
-            while mutseqs[recid][aligncol] == "-":
+            while aligncol < len(mutseqs[recid]) and  mutseqs[recid][aligncol] == "-":
                 aligncol += 1
             if base == "N":
                 print(f"Masking col {aligncol:03d} due to mask in {recid}", file=stderr)
