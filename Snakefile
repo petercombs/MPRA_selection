@@ -2,6 +2,14 @@ mammals = "40674"
 primates = "9443"
 rodents = "314147" # and rabbits
 human = "9606"
+
+groups = {
+    "mammals" : "40674",
+    "primates" : "9443",
+    "rodents" : "314147",
+    "human" : "9606",
+}
+
 include_taxids = "{primates} {rodents}".format(primates=primates, rodents=rodents)
 exclude_taxids = "{human}".format(human=human)
 
@@ -130,13 +138,15 @@ rule primates_fasta:
         seq="{enhancer}/sequence.fasta",
         taxidnodes="Reference/mammals.dmp",
     output:
-        "{enhancer}/primates_withdups.fasta"
+        "{enhancer}/{ingroup}_withdups.fasta"
+    params:
+        ingroup=lambda wildcards: groups[wildcards.ingroup]
     conda: "envs/conda.env"
     shell:"""
       cat {input.blastout} \
       | python FilterTaxID.py \
             --taxid-column 3 \
-            --include {primates} \
+            --include {params.ingroup} \
             --output-fasta \
             {input.taxidnodes} - \
       | cat - <(perl -pe 's/>.*/>Homo_sapiens original sequence 100/' {input.seq}) \
