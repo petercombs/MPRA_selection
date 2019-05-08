@@ -89,6 +89,8 @@ rule blast_sequence:
 
     """
 
+def get_species(wildcards):
+    return config['species'].get(wildcards.enhancer, 'Homo_sapiens')
 
 
 rule filter_blast:
@@ -99,7 +101,7 @@ rule filter_blast:
     output:
         "{enhancer}/localblast_withdups.fasta"
     params:
-        species=lambda wildcards: config['species'].get(wildcards.enhancer, 'Homo_sapiens')
+        species=get_species,
     conda: "envs/conda.env"
     shell:"""
       cat {input.blastout} \
@@ -121,7 +123,7 @@ rule mammals_fasta:
     output:
         "enhancers/{enhancer}/mammals_withdups.fasta"
     params:
-        species=lambda wildcards: config['species'].get(wildcards.enhancer, 'Homo_sapiens')
+        species=get_species,
     conda: "envs/conda.env"
     shell:"""
       cat {input.blastout} \
@@ -145,7 +147,7 @@ rule primates_fasta:
         "{enhancer}/{ingroup}_withdups.fasta"
     params:
         ingroup=lambda wildcards: groups[wildcards.ingroup],
-        species=lambda wildcards: config['species'].get(wildcards.enhancer, 'Homo_sapiens'),
+        species=get_species,
     conda: "envs/conda.env"
     shell:"""
       cat {input.blastout} \
@@ -312,9 +314,11 @@ rule sequence_from_file:
         exists="enhancers/{enhancer}/exists",
     output:
         "enhancers/{enhancer}/sequence.fasta"
+    params:
+        species=get_species,
     conda: "envs/conda.env"
     shell: """
-    python ExtractSequenceFromDataFile.py {wildcards.enhancer} {input.data} > {output}
+    python ExtractSequenceFromDataFile.py {wildcards.enhancer} {input.data} {params.species} > {output}
     """
 
 rule exists:

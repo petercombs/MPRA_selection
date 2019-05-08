@@ -70,6 +70,7 @@ data_styles:
 
 ingroup:
     LTV1-1: rodents
+    LTV1-2: rodents
 
 species:
     LTV1-1: Mus_musculus
