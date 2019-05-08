@@ -1,6 +1,8 @@
 data_files:
     ALDOB: MPRA/Patwardhan_SupplementaryData/trivariate.tab
     ECR11: MPRA/Patwardhan_SupplementaryData/trivariate.tab
+    LTV1-1: MPRA/Patwardhan_SupplementaryData/trivariate.tab
+    LTV1-2: MPRA/Patwardhan_SupplementaryData/trivariate.tab
     BCL11A: MPRA/GRCh38_ALL.tsv
     F9: MPRA/GRCh38_ALL.tsv
     FOXE1: MPRA/GRCh38_ALL.tsv
@@ -34,6 +36,8 @@ data_files:
 data_styles:
     ALDOB: patwardhan
     ECR11: patwardhan
+    LTV1-1: patwardhan
+    LTV1-2: patwardhan
     BCL11A: kirchner
     F9: kirchner
     FOXE1: kirchner
@@ -64,6 +68,12 @@ data_styles:
     ZRSh-13: kirchner
     ZRSh-13h2: kirchner
 
+ingroup:
+    LTV1-1: rodents
+
+species:
+    LTV1-1: Mus_musculus
+    LTV1-2: Mus_musculus
 
 promoters : [
     TERT-GAa, TERT-GBM, TERT-GSc, TERT-HEK, LDLR, LDLR.2, HBB, HBG1, HNF4A,
