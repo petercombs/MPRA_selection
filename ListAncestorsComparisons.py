@@ -176,7 +176,7 @@ if __name__ == "__main__":
     mpra_data.loc[args.enhancer_name].to_csv(
         path.join(path.dirname(args.input_tree), "mpra_data.tsv"), sep="\t"
     )
-    print(tree.as_string("newick"))
+    # print(tree.as_string("newick"))
     if args.target_species_fasta:
         target_species = {
             rec.id.replace("_", " ")
@@ -296,14 +296,31 @@ if __name__ == "__main__":
     kukn_fisher = fisher_exact([[overall_du, overall_dn], [pu, pn]])
     kdkn_fisher = fisher_exact([[overall_dd, overall_dn], [pd, pn]])
 
+    print(f"Possible up: {pu}")
+    print(f"Possible neutral: {pn}")
+    print(f"Possible down: {pd}")
+
     if pu > 0 and pn > 0 and overall_dn > 0 and overall_du > 0:
-        print("Overall Ku/Kn", (overall_du / pu) / (overall_dn / pn), kukn_fisher[1])
+        print(
+            "Overall Ku/Kn {} (p={}; ({}/{})/({}/{}))".format(
+                (overall_du / pu) / (overall_dn / pn),
+                kukn_fisher[1],
+                overall_du,
+                pu,
+                overall_dn,
+                pn,
+            )
+        )
     else:
         print(
             f"Overall Ku/Kn not well defined: Ku = {overall_du}/{pu}, Kn = {overall_dn}/{pn}"
         )
     if pd > 0 and pn > 0 and overall_dn > 0 and overall_dd > 0:
-        print("Overall Kd/Kn", (overall_dd / pd) / (overall_dn / pn), kdkn_fisher[1])
+        print(
+            "Overall Kd/Kn {} (p={})".format(
+                (overall_dd / pd) / (overall_dn / pn), kdkn_fisher[1]
+            )
+        )
     else:
         print(
             f"Overall Kd/Kn not well defined: Kd = {overall_dd}/{pd}, Kn = {overall_dn}/{pn}"
