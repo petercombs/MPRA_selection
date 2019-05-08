@@ -98,6 +98,8 @@ rule filter_blast:
         taxidnodes="Reference/mammals.dmp",
     output:
         "{enhancer}/localblast_withdups.fasta"
+    params:
+        species=lambda wildcards: config['species'].get(wildcards.enhancer, 'Homo_sapiens')
     conda: "envs/conda.env"
     shell:"""
       cat {input.blastout} \
@@ -107,17 +109,19 @@ rule filter_blast:
             --exclude {exclude_taxids} \
             --output-fasta \
             {input.taxidnodes} - \
-      | cat - <(perl -pe 's/>.*/>Homo_sapiens original sequence 100/' {input.seq}) \
+      | cat - <(perl -pe 's/>.*/>{params.species} original sequence 100/' {input.seq}) \
       > {output}
       """
 
 rule mammals_fasta:
     input:
-        blastout = "{enhancer}/alllocalblast.tsv",
-        seq="{enhancer}/sequence.fasta",
+        blastout = "enhancers/{enhancer}/alllocalblast.tsv",
+        seq="enhancers/{enhancer}/sequence.fasta",
         taxidnodes="Reference/mammals.dmp",
     output:
-        "{enhancer}/mammals_withdups.fasta"
+        "enhancers/{enhancer}/mammals_withdups.fasta"
+    params:
+        species=lambda wildcards: config['species'].get(wildcards.enhancer, 'Homo_sapiens')
     conda: "envs/conda.env"
     shell:"""
       cat {input.blastout} \
@@ -126,7 +130,7 @@ rule mammals_fasta:
             --include {mammals} \
             --output-fasta \
             {input.taxidnodes} - \
-      | cat - <(perl -pe 's/>.*/>Homo_sapiens original sequence 100/' {input.seq}) \
+      | cat - <(perl -pe 's/>.*/>{params.species} original sequence 100/' {input.seq}) \
       > {output}
       """
 
@@ -140,7 +144,8 @@ rule primates_fasta:
     output:
         "{enhancer}/{ingroup}_withdups.fasta"
     params:
-        ingroup=lambda wildcards: groups[wildcards.ingroup]
+        ingroup=lambda wildcards: groups[wildcards.ingroup],
+        species=lambda wildcards: config['species'].get(wildcards.enhancer, 'Homo_sapiens'),
     conda: "envs/conda.env"
     shell:"""
       cat {input.blastout} \
@@ -149,7 +154,7 @@ rule primates_fasta:
             --include {params.ingroup} \
             --output-fasta \
             {input.taxidnodes} - \
-      | cat - <(perl -pe 's/>.*/>Homo_sapiens original sequence 100/' {input.seq}) \
+      | cat - <(perl -pe 's/>.*/>{params.species} original sequence 100/' {input.seq}) \
       > {output}
       """
 
