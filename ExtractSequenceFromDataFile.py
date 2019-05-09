@@ -37,4 +37,4 @@ if __name__ == "__main__":
     # We know that TCF7L2 has a missing base in the data file, so I'm going to
     # use range instead of just looping over the bases.
     seq = wrap("".join(seq[i].pop() for i in range(min, max+1)))
-    print(f">Homo_sapiens chr{chrom}:{min}-{max} 100.0", *seq, sep="\n")
+    print(f">{argv[3]} chr{chrom}:{min}-{max} 100.0", *seq, sep="\n")
