@@ -104,52 +104,7 @@ def parse_args():
         args.header = None
     return args
 
-
-if __name__ == "__main__":
-    args = parse_args()
-    tree = Tree.get_from_path(args.input_tree, "newick")
-
-    alignment = AlignIO.read(args.seqs, "fasta")
-    AlignIO.write(
-        alignment, path.join(path.dirname(args.seqs), "aln.clustal"), "clustal"
-    )
-    alignment_posns = {rec.id: i for i, rec in enumerate(alignment)}
-
-    """
-    if "GRCh38_ALL" in args.mpra_data:
-        mpra_data = pd.read_csv(args.mpra_data, sep="\t")
-        old_mpra_data = mpra_data
-
-        # We are interested in the position per-enhancer
-        mpra_data["pos"] = -1
-        for enh in mpra_data.Element.unique():
-            ix = mpra_data.Element == enh
-            mpra_data.loc[ix, "pos"] = (
-                mpra_data.loc[ix].Position - mpra_data.loc[ix].Position.min() + 1
-            )
-
-        mpra_data = pd.DataFrame(
-            index=pd.MultiIndex.from_arrays(
-                [mpra_data.Element, mpra_data.pos, mpra_data.Alt]
-            ),
-            data={
-                "ref": list(mpra_data["Ref"]),
-                "OldPos": list(mpra_data["Position"]),
-                "Value": list(mpra_data.Value),
-                "pval": list(mpra_data["P-Value"]),
-            },
-            # We need to cast to a list to get it to work with the reindexing
-        )
-    else:
-        # This is likely the Patwardhan data
-        mpra_data = pd.read_csv(
-            args.mpra_data,
-            sep="\t",
-            header=None,
-            names=["Element", "pos", "Alt", "Value", "pval"],
-            index_col=["Element", "pos", "Alt"],
-        )
-        """
+def get_mpra_data(args):
     in_data = pd.read_csv(args.mpra_data, sep="\t", header=args.header)
     in_data = in_data[in_data.iloc[:, args.element_column] == args.enhancer_name]
     in_data["pos"] = (
@@ -176,7 +131,21 @@ if __name__ == "__main__":
     mpra_data.loc[args.enhancer_name].to_csv(
         path.join(path.dirname(args.input_tree), "mpra_data.tsv"), sep="\t"
     )
-    # print(tree.as_string("newick"))
+    return mpra_data
+
+if __name__ == "__main__":
+    args = parse_args()
+    tree = Tree.get_from_path(args.input_tree, "newick")
+
+    alignment = AlignIO.read(args.seqs, "fasta")
+    AlignIO.write(
+        alignment, path.join(path.dirname(args.seqs), "aln.clustal"), "clustal"
+    )
+    alignment_posns = {rec.id: i for i, rec in enumerate(alignment)}
+
+
+    mpra_data = get_mpra_data(args)
+
     if args.target_species_fasta:
         target_species = {
             rec.id.replace("_", " ")
