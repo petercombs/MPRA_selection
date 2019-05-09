@@ -1,20 +1,28 @@
+"""ListAncestorsComparisons
+
+Perform comparisons of ancestral and derived sequences and look for enrichments
+in upregulating mutations and downregulating mutations, compared to chance.
+Here, up- and down-regulating is defined as the effect that mutation has, on its
+own, in the MPRA data provided.
+"""
+
+from os import path
+from sys import stderr
 from argparse import ArgumentParser, ArgumentTypeError
+import pandas as pd
+from Bio import SeqIO, AlignIO
+from scipy.stats import fisher_exact
 from dendropy import Tree, Taxon
 from dendropy.utility.error import SeedNodeDeletionException
-from Bio import SeqIO, AlignIO
-import pandas as pd
-from os import path
-from scipy.stats import fisher_exact
-from sys import stderr
 
-tree_labels = ["SKIP"]
-
-for i in range(1, 10):
-    for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
-        tree_labels.append(c * i)
+TREE_LABELS = ["SKIP"] + [
+    c * i for i in range(1, 10) for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+]
 
 
 def parse_args():
+    "Parse args from command line"
+
     parser = ArgumentParser()
     parser.add_argument(
         "--target-species-fasta",
@@ -73,6 +81,7 @@ def parse_args():
         args.alt_column = 2
         args.value_column = 3
         args.pval_column = 4
+
     elif args.data_style == "kirchner":
         args.header = 0
         args.element_column = 9
@@ -80,6 +89,7 @@ def parse_args():
         args.alt_column = 3
         args.value_column = 7
         args.pval_column = 8
+
     elif None in (
         args.element_column,
         args.position_column,
@@ -104,7 +114,19 @@ def parse_args():
         args.header = None
     return args
 
+
 def get_mpra_data(args):
+    """Load in MPRA data and convert to standard format
+
+
+    Returns: a data frame with a MultiIndex with [Element, Position, AltBase],
+    and columns Value and pval.
+
+        where Position is a 1-based coordinate starting from the start of the
+        sequence (similar to the Patwardhan coordinates, rather than absolute
+        coordinates on the chromosome)
+    """
+
     in_data = pd.read_csv(args.mpra_data, sep="\t", header=args.header)
     in_data = in_data[in_data.iloc[:, args.element_column] == args.enhancer_name]
     in_data["pos"] = (
@@ -133,23 +155,16 @@ def get_mpra_data(args):
     )
     return mpra_data
 
-if __name__ == "__main__":
-    args = parse_args()
-    tree = Tree.get_from_path(args.input_tree, "newick")
 
-    alignment = AlignIO.read(args.seqs, "fasta")
-    AlignIO.write(
-        alignment, path.join(path.dirname(args.seqs), "aln.clustal"), "clustal"
-    )
-    alignment_posns = {rec.id: i for i, rec in enumerate(alignment)}
+def relabel_tree(tree, target_species_fasta):
+    """Update tree with branch labels according to the comparisons we expect to
+    do
 
-
-    mpra_data = get_mpra_data(args)
-
-    if args.target_species_fasta:
+    """
+    if target_species_fasta:
         target_species = {
             rec.id.replace("_", " ")
-            for rec in SeqIO.parse(args.target_species_fasta, "fasta")
+            for rec in SeqIO.parse(target_species_fasta, "fasta")
         }
         try:
             outgroup_tree = tree.extract_tree_without_taxa_labels(target_species)
@@ -177,18 +192,21 @@ if __name__ == "__main__":
         if edge.head_node is outgroup_root:
             edge.label = "N/A"
             continue
-        edge.label = tree_labels[i]
+        edge.label = TREE_LABELS[i]
         i += 1
 
     for node in tree:
         node.annotations["comparison"] = node.incident_edges()[-1].label
-        if args.target_species_fasta and node is outgroup_root:
+        if target_species_fasta and node is outgroup_root:
             node.annotations["species"] = "Outgroup"
         else:
             node.annotations["species"] = node.taxon.label if node.taxon else node.label
 
-    if args.output_tree:
-        tree.write_to_path(args.output_tree, "nexus", suppress_annotations=False)
+
+def score_tree(tree, alignment, alignment_posns, mpra_data, enhancer_name):
+    """ Score Ku/Kn and Kd/Kn for the given tree
+
+    """
 
     overall_du = 0
     overall_dd = 0
@@ -205,9 +223,9 @@ if __name__ == "__main__":
         homo_seq = alignment[alignment_posns["original"]]
         parent_seq = alignment[alignment_posns[parent_name]]
         child_seq = alignment[alignment_posns[node_name]]
-        du = 0
-        dd = 0
-        dn = 0
+        branch_du = 0
+        branch_dd = 0
+        branch_dn = 0
         for i in range(align_len):
             if homo_seq[i] == "-":
                 continue
@@ -219,78 +237,100 @@ if __name__ == "__main__":
                 if parent_seq[i] == "-" or child_seq[i] == "-":
                     continue
                 elif parent_seq[i] == homo_seq[i] and parent_seq[i] != child_seq[i]:
-                    if len(mpra_data.loc[args.enhancer_name, homo_pos]) < 3:
+                    if len(mpra_data.loc[enhancer_name, homo_pos]) < 3:
                         continue
-                    mpra_row = mpra_data.loc[args.enhancer_name, homo_pos, child_seq[i]]
+                    mpra_row = mpra_data.loc[enhancer_name, homo_pos, child_seq[i]]
                     if mpra_row.pval > .05:
-                        dn += 1
+                        branch_dn += 1
                     elif mpra_row.Value < 0:
-                        dd += 1
+                        branch_dd += 1
                     else:
-                        du += 1
+                        branch_du += 1
                 elif child_seq[i] == homo_seq[i] and parent_seq[i] != child_seq[i]:
-                    if len(mpra_data.loc[args.enhancer_name, homo_pos]) < 3:
+                    if len(mpra_data.loc[enhancer_name, homo_pos]) < 3:
                         raise ValueError(f"Missing one or more bases at {homo_pos}")
                     mpra_row = mpra_data.loc[
-                        args.enhancer_name, homo_pos, parent_seq[i]
+                        enhancer_name, homo_pos, parent_seq[i]
                     ]
                     if mpra_row.pval > .05:
-                        dn += 1
+                        branch_dn += 1
                     elif mpra_row.Value > 0:
-                        dd += 1
+                        branch_dd += 1
                     else:
-                        du += 1
+                        branch_du += 1
             except Exception as err:
                 print("ERR:", homo_seq[i], parent_seq[i], child_seq[i], file=stderr)
-                print("ERR:", mpra_data.loc[args.enhancer_name, homo_pos], file=stderr)
+                print("ERR:", mpra_data.loc[enhancer_name, homo_pos], file=stderr)
                 print("ERR:", err, file=stderr)
 
-        overall_du += du
-        overall_dd += dd
-        overall_dn += dn
+        overall_du += branch_du
+        overall_dd += branch_dd
+        overall_dn += branch_dn
         print(
             node.incident_edges()[-1].label,
             parent_name,
             node_name,
-            f"{du}U",
-            f"{dn}N",
-            f"{dd}D",
+            f"{branch_du}U",
+            f"{branch_dn}N",
+            f"{branch_dd}D",
             sep="\t",
         )
 
-    pu = len(mpra_data.query("Value > 0 and pval < .05"))
-    pd = len(mpra_data.query("Value < 0 and pval < .05"))
-    pn = len(mpra_data.query("pval > .05"))
+    possible_u = len(mpra_data.query("Value > 0 and pval < .05"))
+    possible_d = len(mpra_data.query("Value < 0 and pval < .05"))
+    possible_n = len(mpra_data.query("pval > .05"))
 
-    kukn_fisher = fisher_exact([[overall_du, overall_dn], [pu, pn]])
-    kdkn_fisher = fisher_exact([[overall_dd, overall_dn], [pd, pn]])
+    kukn_fisher = fisher_exact([[overall_du, overall_dn], [possible_u, possible_n]])
+    kdkn_fisher = fisher_exact([[overall_dd, overall_dn], [possible_d, possible_n]])
 
-    print(f"Possible up: {pu}")
-    print(f"Possible neutral: {pn}")
-    print(f"Possible down: {pd}")
+    print(f"Possible up: {possible_u}")
+    print(f"Possible neutral: {possible_n}")
+    print(f"Possible down: {possible_d}")
 
-    if pu > 0 and pn > 0 and overall_dn > 0 and overall_du > 0:
+    if possible_u > 0 and possible_n > 0 and overall_dn > 0 and overall_du > 0:
         print(
             "Overall Ku/Kn {} (p={}; ({}/{})/({}/{}))".format(
-                (overall_du / pu) / (overall_dn / pn),
+                (overall_du / possible_u) / (overall_dn / possible_n),
                 kukn_fisher[1],
                 overall_du,
-                pu,
+                possible_u,
                 overall_dn,
-                pn,
+                possible_n,
             )
         )
     else:
         print(
-            f"Overall Ku/Kn not well defined: Ku = {overall_du}/{pu}, Kn = {overall_dn}/{pn}"
+            f"Overall Ku/Kn not well defined: "
+            + f"Ku = {overall_du}/{possible_u}, Kn = {overall_dn}/{possible_n}"
         )
-    if pd > 0 and pn > 0 and overall_dn > 0 and overall_dd > 0:
+    if possible_d > 0 and possible_n > 0 and overall_dn > 0 and overall_dd > 0:
         print(
             "Overall Kd/Kn {} (p={})".format(
-                (overall_dd / pd) / (overall_dn / pn), kdkn_fisher[1]
+                (overall_dd / possible_d) / (overall_dn / possible_n), kdkn_fisher[1]
             )
         )
     else:
         print(
-            f"Overall Kd/Kn not well defined: Kd = {overall_dd}/{pd}, Kn = {overall_dn}/{pn}"
+            f"Overall Kd/Kn not well defined: "
+            + f"Kd = {overall_dd}/{possible_d}, Kn = {overall_dn}/{possible_n}"
         )
+
+
+if __name__ == "__main__":
+    ARGS = parse_args()
+    TREE = Tree.get_from_path(ARGS.input_tree, "newick")
+
+    ALIGNMENT = AlignIO.read(ARGS.seqs, "fasta")
+    AlignIO.write(
+        ALIGNMENT, path.join(path.dirname(ARGS.seqs), "aln.clustal"), "clustal"
+    )
+    ALIGNMENT_POSNS = {rec.id: i for i, rec in enumerate(ALIGNMENT)}
+
+    MPRA_DATA = get_mpra_data(ARGS)
+
+    relabel_tree(TREE, ARGS.target_species_fasta)
+
+    if ARGS.output_tree:
+        TREE.write_to_path(ARGS.output_tree, "nexus", suppress_annotations=False)
+
+    score_tree(TREE, ALIGNMENT, ALIGNMENT_POSNS, MPRA_DATA, ARGS.enhancer_name)
