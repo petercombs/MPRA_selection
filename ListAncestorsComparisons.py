@@ -9,6 +9,7 @@ own, in the MPRA data provided.
 from os import path
 from sys import stderr
 from argparse import ArgumentParser, ArgumentTypeError
+from numpy.random import permutation
 import pandas as pd
 from Bio import SeqIO, AlignIO
 from scipy.stats import fisher_exact
@@ -249,9 +250,7 @@ def score_tree(tree, alignment, alignment_posns, mpra_data, enhancer_name):
                 elif child_seq[i] == homo_seq[i] and parent_seq[i] != child_seq[i]:
                     if len(mpra_data.loc[enhancer_name, homo_pos]) < 3:
                         raise ValueError(f"Missing one or more bases at {homo_pos}")
-                    mpra_row = mpra_data.loc[
-                        enhancer_name, homo_pos, parent_seq[i]
-                    ]
+                    mpra_row = mpra_data.loc[enhancer_name, homo_pos, parent_seq[i]]
                     if mpra_row.pval > .05:
                         branch_dn += 1
                     elif mpra_row.Value > 0:
@@ -314,6 +313,20 @@ def score_tree(tree, alignment, alignment_posns, mpra_data, enhancer_name):
             f"Overall Kd/Kn not well defined: "
             + f"Kd = {overall_dd}/{possible_d}, Kn = {overall_dn}/{possible_n}"
         )
+    return kukn_fisher, kdkn_fisher
+
+
+def shuffle_mpra(mpra_data):
+    """Shuffle data by base that we're switching to
+
+    """
+    out = mpra_data.copy()
+    for base in out.index.levels[2]:
+        out.loc[(slice(None), slice(None), base), :] = permutation(
+            out.loc[(slice(None), slice(None), base), :]
+        )
+
+    return out
 
 
 if __name__ == "__main__":
@@ -334,3 +347,7 @@ if __name__ == "__main__":
         TREE.write_to_path(ARGS.output_tree, "nexus", suppress_annotations=False)
 
     score_tree(TREE, ALIGNMENT, ALIGNMENT_POSNS, MPRA_DATA, ARGS.enhancer_name)
+
+    SHUFFLED_MPRA = shuffle_mpra(MPRA_DATA)
+
+    score_tree(TREE, ALIGNMENT, ALIGNMENT_POSNS, SHUFFLED_MPRA, ARGS.enhancer_name)
