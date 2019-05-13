@@ -30,7 +30,7 @@ rule get_nodes:
 rule reduce_to_mammals:
     input: "Reference/nodes.dmp"
     output: "Reference/mammals.dmp"
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell: """
     python FilterTaxID.py \
         --delimiter "|" \
@@ -47,7 +47,7 @@ rule repmask_input:
         stripped='{enhancer}/{file}.fasta.stripped',
         seq='{enhancer}/{file}.fasta.masked',
         joined='{enhancer}/{file}_withmasked.fasta'
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell: """
     body () {{
         IFS= read -r header
@@ -90,9 +90,8 @@ rule blast_sequence:
         seq="{enhancer}/sequence_withmasked.fasta",
     output:
         "{enhancer}/alllocalblast.tsv"
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell: """
-    module load blast
     blastn -db refseq_genomic \
         -query {input.seq} \
         -outfmt "6 sscinames saccver staxids pident evalue sseq" \
@@ -113,7 +112,7 @@ rule filter_blast:
         "{enhancer}/localblast_withdups.fasta"
     params:
         species=get_species,
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell:"""
       cat {input.blastout} \
       | python FilterTaxID.py \
@@ -135,7 +134,7 @@ rule mammals_fasta:
         "enhancers/{enhancer}/mammals_withdups.fasta"
     params:
         species=get_species,
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell:"""
       cat {input.blastout} \
       | python FilterTaxID.py \
@@ -159,7 +158,7 @@ rule primates_fasta:
     params:
         ingroup=lambda wildcards: groups[wildcards.ingroup],
         species=get_species,
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell:"""
       cat {input.blastout} \
       | python FilterTaxID.py \
@@ -198,7 +197,7 @@ rule clustalo_align:
         "{enhancer}/{target}_withsupport.fasta",
     output:
         "{enhancer}/{target}_clustalo_aligned.fasta",
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell: "clustalo --force -i {input} -o {output} -v"
 
 rule clustalw_align:
@@ -206,7 +205,7 @@ rule clustalw_align:
         "{enhancer}/{target}_withsupport.fasta",
     output:
         "{enhancer}/{target}_clustalw_aligned.clustal",
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell: "clustalw -infile={input} -align -outfile={output} "
 
 rule clustal_to_fasta:
@@ -214,7 +213,7 @@ rule clustal_to_fasta:
         "{file}_aligned.clustal"
     output:
         "{file}_aligned.fasta"
-    #conda: "envs/conda.env"
+    #conda: "envs/conda.yaml"
     run:
         from Bio import SeqIO
         in_recs = SeqIO.parse(input[0], 'clustal')
@@ -225,7 +224,7 @@ rule muscle_align:
         "{enhancer}/{target}_withsupport.fasta",
     output:
         "{enhancer}/{target}_muscle_aligned.fasta",
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell: "muscle -in {input} -out {output} -diags "
 
 rule tcoffee_align:
@@ -234,7 +233,7 @@ rule tcoffee_align:
     output:
         aln="{enhancer}/{target}_tcoffee_aligned.clustal",
         tree="{enhancer}/{target}_tcoffee.tree"
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell: """
     t_coffee -seq {input} -outfile {output.aln} -newtree {output.tree}
     """
@@ -245,7 +244,7 @@ rule merged_tcoffee_align:
     output:
         aln="{enhancer}/{merged}/merged_aligned.clustal",
         tree="{enhancer}/{merged}/tcoffee.tree"
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell: """
     t_coffee -seq {input} -outfile {output.aln} -newtree {output.tree}
     """
@@ -256,7 +255,7 @@ rule mcoffee_align:
     output:
         aln="{enhancer}/{target}_mcoffee_aligned.clustal",
         tree="{enhancer}/{target}_mcoffee.tree"
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell: """
     t_coffee \
         -method ktup_msa clustalo_msa clustalw2_msa mafftdef_msa dialigntx_msa muscle_msa t_coffee_msa \
@@ -276,7 +275,7 @@ rule get_phylogeny:
         newick="enhancers/{enhancer}/{target}.tree",
         nexus="enhancers/{enhancer}/{target}.nexus",
         fasta="enhancers/{enhancer}/{target}_withsupport.fasta",
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell: """
     python GetPhylogeny.py \
         --targets {input.primates} \
@@ -288,7 +287,7 @@ rule strip_internal_nodes:
         "{tree}.tree"
     output:
         "{tree}.leaves.tree"
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell: """
     sed 's/[0-9][0-9_A-Za-z]*:/:/g' < {input} \
         | sed 's/\[&R\] //' \
@@ -306,7 +305,7 @@ rule fastml_reconstruction:
         tree="{enhancer}/FastML-{target}-{aligner}/tree.newick.txt",
     wildcard_constraints:
         target='[^-_]*'
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell:"""
     rm -rf `dirname {output.log}`
     perl tools/FastML.v3.11/www/fastml/FastML_Wrapper.pl \
@@ -327,7 +326,7 @@ rule sequence_from_file:
         "enhancers/{enhancer}/sequence.fasta"
     params:
         species=get_species,
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell: """
     python ExtractSequenceFromDataFile.py {wildcards.enhancer} {input.data} {params.species} > {output}
     """
@@ -353,7 +352,7 @@ rule merge_reconstructions:
         tree="{enhancer}/{target}/tree.newick.txt",
     wildcard_constraints:
         target='[^_-]*'
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell: """
     cp {input.trees[0]} {output.tree}
     python CallConsensus.py {output.seq} {input.seqs}
@@ -384,7 +383,7 @@ rule ancestor_comparisons:
         ename=lambda wildcards: (wildcards.enhancer.lower()
                 if 'Patwardhan' in config['data_files'][wildcards.enhancer]
                 else wildcards.enhancer)
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell: """
     python {input.script} \
         --enhancer-name {params.ename} \
@@ -413,7 +412,7 @@ rule merged_ancestor_comparisons:
                 else wildcards.enhancer),
         data_style=lambda wildcards: config['data_styles'][wildcards.enhancer]
 
-    conda: "envs/conda.env"
+    conda: "envs/conda.yaml"
     shell: """
     python {input.script} \
         --enhancer-name {params.ename} \
