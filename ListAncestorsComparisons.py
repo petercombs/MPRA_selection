@@ -176,7 +176,7 @@ def relabel_tree(tree, target_species_fasta):
                 # There's some kind of error that happens if there's only one
                 # outgroup species
                 outgroup_root.clear_child_nodes()
-                outgroup_root.taxon = Taxon(outgroup_root.label)
+                outgroup_root.taxon = tree.taxon_set.new_taxon(outgroup_root.label)
             else:
                 pass
         except SeedNodeDeletionException:
@@ -262,6 +262,7 @@ def score_tree(tree, alignment, alignment_posns, mpra_data, enhancer_name):
                 print("ERR:", mpra_data.loc[enhancer_name, homo_pos], file=stderr)
                 print("ERR:", err, file=stderr)
 
+        node.annotations['udn'] = f"{branch_du}U {branch_dn}N {branch_dd}D"
         overall_du += branch_du
         overall_dd += branch_dd
         overall_dn += branch_dn
@@ -343,10 +344,13 @@ if __name__ == "__main__":
 
     relabel_tree(TREE, ARGS.target_species_fasta)
 
+    REAL_DATA = score_tree(
+        TREE, ALIGNMENT, ALIGNMENT_POSNS, MPRA_DATA, ARGS.enhancer_name
+    )
+
     if ARGS.output_tree:
         TREE.write_to_path(ARGS.output_tree, "nexus", suppress_annotations=False)
 
-    score_tree(TREE, ALIGNMENT, ALIGNMENT_POSNS, MPRA_DATA, ARGS.enhancer_name)
 
     SHUFFLED_MPRA = shuffle_mpra(MPRA_DATA)
 

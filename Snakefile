@@ -413,6 +413,29 @@ rule merged_ancestor_comparisons:
         > {output.results}
     """
 
+rule comparisons_figure:
+    input:
+        tree="{dir}/comparisons.tree",
+        figtreeconf="Reference/figtree.conf",
+    output:
+        with_plot="{dir}/comparisons.figtree.tree",
+        imageraster="{dir}/comparisons.png",
+        imagevector="{dir}/comparisons.pdf",
+    shell: """
+    cat {input} > {output.with_plot}
+    figtree -width 1200 -height 900 -graphic PNG {output.with_plot} {output.imageraster}
+    figtree -width 1200 -height 900 -graphic PDF {output.with_plot} {output.imagevector}
+
+    """
+
+rule renamed_figures:
+    input:
+        "figures/exists",
+        fig="enhancers/{enhancer}/mammals/comparisons.{type}",
+    output:
+        fig="figures/{enhancer}.{type}"
+    shell: "cp {input.fig} {output.fig}"
+
 rule all_mammal_seqs:
     input:
         expand("enhancers/{enhancer}/mammals.fasta",
@@ -435,5 +458,13 @@ rule all_selection:
                 #enhancer=['ECR11', 'ALDOB'],
               #),
 
+rule all_figures:
+    input:
+        expand("figures/{enhancer}.{types}",
+            enhancer=config["data_files"].keys(),
+            types=["png", "pdf"],
+        )
+
+
 localrules: exists
-localrules: all_mammal_seqs, all_repmasked, all_selection
+localrules: all_mammal_seqs, all_repmasked, all_selection, all_figures, renamed_figures

@@ -21,3 +21,11 @@ Reference/RepBase24.03.fasta/all.fasta
 
     cat *.ref appendix/*.ref > all.fasta
 
+
+You will also need to have installed:
+
+    * FigTree (sudo apt-get install figtree)
+    * Snakemake and Python
+    * The RefSeq Genomic blast database
+    * Probably other things I haven't discovered yet (please file an issue!)
+
