@@ -7,12 +7,14 @@ own, in the MPRA data provided.
 """
 
 from os import path
-from sys import stderr
+from sys import stderr, stdout
 from argparse import ArgumentParser, ArgumentTypeError
 from numpy.random import permutation
 import pandas as pd
+from bisect import bisect
 from Bio import SeqIO, AlignIO
 from scipy.stats import fisher_exact
+from tqdm import tqdm
 from dendropy import Tree, Taxon
 from dendropy.utility.error import SeedNodeDeletionException
 
@@ -204,7 +206,9 @@ def relabel_tree(tree, target_species_fasta):
             node.annotations["species"] = node.taxon.label if node.taxon else node.label
 
 
-def score_tree(tree, alignment, alignment_posns, mpra_data, enhancer_name):
+def score_tree(
+    tree, alignment, alignment_posns, mpra_data, enhancer_name, verbose=True
+):
     """ Score Ku/Kn and Kd/Kn for the given tree
 
     """
@@ -274,6 +278,7 @@ def score_tree(tree, alignment, alignment_posns, mpra_data, enhancer_name):
             f"{branch_dn}N",
             f"{branch_dd}D",
             sep="\t",
+            file=stdout if verbose else open("/dev/null", "w"),
         )
 
     possible_u = len(mpra_data.query("Value > 0 and pval < .05"))
@@ -283,9 +288,17 @@ def score_tree(tree, alignment, alignment_posns, mpra_data, enhancer_name):
     kukn_fisher = fisher_exact([[overall_du, overall_dn], [possible_u, possible_n]])
     kdkn_fisher = fisher_exact([[overall_dd, overall_dn], [possible_d, possible_n]])
 
-    print(f"Possible up: {possible_u}")
-    print(f"Possible neutral: {possible_n}")
-    print(f"Possible down: {possible_d}")
+    print(
+        f"Possible up: {possible_u}", file=stdout if verbose else open("/dev/null", "w")
+    )
+    print(
+        f"Possible neutral: {possible_n}",
+        file=stdout if verbose else open("/dev/null", "w"),
+    )
+    print(
+        f"Possible down: {possible_d}",
+        file=stdout if verbose else open("/dev/null", "w"),
+    )
 
     if possible_u > 0 and possible_n > 0 and overall_dn > 0 and overall_du > 0:
         print(
@@ -296,23 +309,27 @@ def score_tree(tree, alignment, alignment_posns, mpra_data, enhancer_name):
                 possible_u,
                 overall_dn,
                 possible_n,
-            )
+            ),
+            file=stdout if verbose else open("/dev/null", "w"),
         )
     else:
         print(
             f"Overall Ku/Kn not well defined: "
-            + f"Ku = {overall_du}/{possible_u}, Kn = {overall_dn}/{possible_n}"
+            + f"Ku = {overall_du}/{possible_u}, Kn = {overall_dn}/{possible_n}",
+            file=stdout if verbose else open("/dev/null", "w"),
         )
     if possible_d > 0 and possible_n > 0 and overall_dn > 0 and overall_dd > 0:
         print(
             "Overall Kd/Kn {} (p={})".format(
                 (overall_dd / possible_d) / (overall_dn / possible_n), kdkn_fisher[1]
-            )
+            ),
+            file=stdout if verbose else open("/dev/null", "w"),
         )
     else:
         print(
             f"Overall Kd/Kn not well defined: "
-            + f"Kd = {overall_dd}/{possible_d}, Kn = {overall_dn}/{possible_n}"
+            + f"Kd = {overall_dd}/{possible_d}, Kn = {overall_dn}/{possible_n}",
+            file=stdout if verbose else open("/dev/null", "w"),
         )
     return kukn_fisher, kdkn_fisher
 
@@ -352,6 +369,28 @@ if __name__ == "__main__":
         TREE.write_to_path(ARGS.output_tree, "nexus", suppress_annotations=False)
 
 
-    SHUFFLED_MPRA = shuffle_mpra(MPRA_DATA)
+    SHUFFLED_KUKNS = []
+    SHUFFLED_KDKNS = []
+    for i in tqdm(range(1000)):
+        SHUFFLED_MPRA = shuffle_mpra(MPRA_DATA)
+        KUKN_SHUF, KDKN_SHUF = score_tree(
+            TREE,
+            ALIGNMENT,
+            ALIGNMENT_POSNS,
+            SHUFFLED_MPRA,
+            ARGS.enhancer_name,
+            verbose=False,
+        )
+        SHUFFLED_KUKNS.append(KUKN_SHUF[0])
+        SHUFFLED_KDKNS.append(KDKN_SHUF[0])
+    SHUFFLED_KUKNS.sort()
+    SHUFFLED_KDKNS.sort()
 
-    score_tree(TREE, ALIGNMENT, ALIGNMENT_POSNS, SHUFFLED_MPRA, ARGS.enhancer_name)
+    print(
+        "Empirical KuKn p-value",
+        bisect(SHUFFLED_KUKNS, REAL_DATA[0][0]) / len(SHUFFLED_KUKNS),
+    )
+    print(
+        "Empirical KdKn p-value",
+        bisect(SHUFFLED_KDKNS, REAL_DATA[1][0]) / len(SHUFFLED_KDKNS),
+    )
