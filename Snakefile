@@ -21,12 +21,10 @@ rule get_nodes:
     output:
         "Reference/nodes.dmp",
         "Reference/names.dmp",
-        "Reference/mammals.dmp",
     shell: """
     cd Reference
     wget ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz
     tar -xzf taxdump.tar.gz
-    python ../FilterTaxID.py --delimiter "|" --include 40674 -k 1 nodes.dmp nodes.dmp > mammals.dmp
     """
 
 rule reduce_to_mammals:
