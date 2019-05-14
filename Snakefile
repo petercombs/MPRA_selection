@@ -81,6 +81,7 @@ rule propagate_masks:
         masked="{file}.fasta.masked",
     output:
         "{file}_maskprop.fasta",
+    conda: "envs/conda.yaml"
     shell: """
     python PropagateMasks.py {input} {output}
     """
