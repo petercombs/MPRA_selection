@@ -283,6 +283,19 @@ rule strip_internal_nodes:
         > {output}
     """
 
+rule get_fastml:
+    input:
+        "tools/exists",
+    output:
+        "tools/FastML.v3.11/www/fastml/FastML_Wrapper.pl"
+    shell: """
+    cd tools
+    wget http://fastml.tau.ac.il/source/FastML.v3.11.tgz
+    tar -xvzf FastML.v3.11.tgz
+    cd FastML.v3.11
+    make
+    """
+
 rule fastml_reconstruction:
     input:
         tree="{enhancer}/{target}.leaves.tree",
