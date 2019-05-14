@@ -294,7 +294,7 @@ rule get_fastml:
     wget http://fastml.tau.ac.il/source/FastML.v3.11.tgz
     tar -xvzf FastML.v3.11.tgz
     cd FastML.v3.11
-    make
+    make -j 8
     """
 
 rule fastml_reconstruction:
