@@ -6,30 +6,7 @@ channels:
   - defaults
   - r
 dependencies:
-  - blast=2.7.1=h4422958_6
-  - clustalo=1.2.4=hfc679d8_2
-  - clustalw=2.1=h6bb024c_3
-  - dendropy=4.4.0=py_0
-  - filechunkio=1.6=py36_0
-  - ftputil=3.2=py36_0
-  - hmmer=3.2.1=hf484d3e_1
-  - muscle=3.8.1551=h6bb024c_4
-  - perl-archive-tar=2.18=1
-  - perl-exporter-tiny=0.042=1
-  - perl-list-moreutils=0.413=1
-  - perl-threaded=5.26.0=0
-  - pyasn1-modules=0.0.5=py36_0
-  - pygraphviz=1.3.1=py36_0
-  - pysftp=0.2.9=py36_0
-  - r-geiger=2.0.6=r351h29659fb_3
-  - repeatmasker=4.0.6=6
-  - rmblast=2.6.0=h4422958_0
-  - rsa=3.1.4=py36_0
-  - snakemake=5.4.4=0
-  - snakemake-minimal=5.4.4=py_1
-  - t_coffee=11.0.8=py36_2
-  - trf=4.09=1
-  - urllib3=1.12=py36_0
+  - _r-mutex=1.0.0=anacondar_1
   - aioeasywebdav=2.2.0=py36_0
   - aiohttp=3.5.4=py36h14c3975_0
   - appdirs=1.4.3=py_1
@@ -39,11 +16,15 @@ dependencies:
   - attrs=19.1.0=py_0
   - backcall=0.1.0=py_0
   - bcrypt=3.1.4=py36h470a237_0
+  - binutils_impl_linux-64=2.31.1=h6176602_1
+  - binutils_linux-64=2.31.1=h6176602_3
   - biopython=1.73=py36h14c3975_0
+  - blast=2.7.1=h4422958_6
   - boost=1.67.0=py36h3e44d54_0
   - boost-cpp=1.67.0=h3a22d5f_0
   - boto3=1.7.84=py_0
   - botocore=1.10.84=py_0
+  - bwidget=1.9.11=1
   - bzip2=1.0.6=h14c3975_1002
   - ca-certificates=2019.3.9=hecc5488_0
   - cachetools=2.1.0=py_0
@@ -51,19 +32,29 @@ dependencies:
   - certifi=2019.3.9=py36_0
   - cffi=1.12.2=py36hf0e25f4_1
   - chardet=3.0.4=py36_1003
+  - clustalo=1.2.4=hfc679d8_2
+  - clustalw=2.1=h6bb024c_3
   - configargparse=0.13.0=py_1
   - cryptography=2.6.1=py36h72c5cf5_0
   - curl=7.64.1=hf8cf82a_0
+  - cycler=0.10.0=py_1
   - datrie=0.7.1=py36h14c3975_0
   - decorator=4.4.0=py_0
+  - dendropy=4.4.0=py_0
   - docutils=0.14=py36_1001
   - dropbox=7.3.1=py36_0
+  - ete3=3.1.1=pyh24bf2e0_1
   - expat=2.2.5=hf484d3e_1002
+  - fastml=3.1=pl5.20.3_1
+  - filechunkio=1.6=py36_0
   - fontconfig=2.13.1=he4413a7_1000
   - freetype=2.10.0=he983fc9_0
+  - ftputil=3.2=py36_0
   - gcc_impl_linux-64=7.3.0=habb00fd_1
   - gcc_linux-64=7.3.0=h553295d_3
   - gettext=0.19.8.1=hc5be6a0_1002
+  - gfortran_impl_linux-64=7.3.0=hdf63c60_1
+  - gfortran_linux-64=7.3.0=h553295d_3
   - gitdb2=2.0.5=py_0
   - gitpython=2.1.11=py_0
   - glib=2.58.3=hf63aee3_1001
@@ -81,6 +72,7 @@ dependencies:
   - gxx_impl_linux-64=7.3.0=hdf63c60_1
   - gxx_linux-64=7.3.0=h553295d_3
   - harfbuzz=2.3.1=h6824563_0
+  - hmmer=3.2.1=hf484d3e_1
   - httplib2=0.12.1=py36_0
   - icu=58.2=hf484d3e_1000
   - idna=2.8=py36_1000
@@ -92,6 +84,7 @@ dependencies:
   - jmespath=0.9.4=py_0
   - jpeg=9c=h14c3975_1001
   - jsonschema=3.0.1=py36_0
+  - kiwisolver=1.1.0=py36hc9558a2_0
   - krb5=1.16.3=h05b26f9_1001
   - libblas=3.8.0=4_openblas
   - libcblas=3.8.0=4_openblas
@@ -99,20 +92,28 @@ dependencies:
   - libedit=3.1.20170329=hf8c457e_1001
   - libffi=3.2.1=he1b5a44_1006
   - libgcc=7.2.0=h69d50b8_2
+  - libgcc-ng=8.2.0=hdf63c60_1
   - libgfortran=3.0.0=1
+  - libgfortran-ng=7.3.0=hdf63c60_0
   - libiconv=1.15=h516909a_1005
   - liblapack=3.8.0=4_openblas
   - libpng=1.6.36=h84994c4_1000
   - libprotobuf=3.7.0=h8b12597_2
   - libssh2=1.8.2=h22169c7_2
+  - libstdcxx-ng=8.2.0=hdf63c60_1
   - libtiff=4.0.10=h648cc4a_1001
   - libtool=2.4.6=h14c3975_1002
   - libuuid=2.32.1=h14c3975_1000
   - libxcb=1.13=h14c3975_1002
   - libxml2=2.9.8=h143f9aa_1005
+  - libxslt=1.1.32=h4785a14_1002
+  - lxml=4.3.3=py36h7ec2d77_0
   - make=4.2.1=h14c3975_2004
   - markupsafe=1.1.1=py36h14c3975_0
+  - matplotlib=3.0.3=py36_1
+  - matplotlib-base=3.0.3=py36h5f35d83_1
   - multidict=4.5.2=py36h14c3975_1000
+  - muscle=3.8.1551=h6bb024c_4
   - ncurses=6.1=hf484d3e_1002
   - nettle=3.3=0
   - networkx=2.2=py_1
@@ -125,7 +126,11 @@ dependencies:
   - parso=0.3.4=py_0
   - pcre=8.41=hf484d3e_1003
   - perl=5.20.3.1=2
+  - perl-archive-tar=2.18=1
+  - perl-exporter-tiny=0.042=1
+  - perl-list-moreutils=0.413=1
   - perl-text-soundex=3.05=pl5.20.3.1_0
+  - perl-threaded=5.26.0=0
   - pexpect=4.6.0=py36_1000
   - pickleshare=0.7.5=py36_1000
   - pip=19.0.3=py36_0
@@ -137,21 +142,28 @@ dependencies:
   - pthread-stubs=0.4=h14c3975_1001
   - ptyprocess=0.6.0=py36_1000
   - pyasn1=0.4.4=py_1
+  - pyasn1-modules=0.0.5=py36_0
   - pycparser=2.19=py36_1
   - pygments=2.3.1=py_0
+  - pygraphviz=1.3.1=py36_0
   - pynacl=1.3.0=py36h14c3975_1000
+  - pyparsing=2.4.0=py_0
+  - pyqt=4.11.4=py36_3
   - pyrsistent=0.14.11=py36h14c3975_0
+  - pysftp=0.2.9=py36_0
   - python=3.6.7=h381d211_1004
   - python-dateutil=2.8.0=py_0
   - python-irodsclient=0.7.0=py_0
   - pytz=2018.9=py_0
   - pyyaml=5.1=py36h14c3975_0
+  - qt=4.8.7=2
   - r-ape=5.3=r351h0357c0b_0
   - r-base=3.5.1=h271c98b_1006
   - r-coda=0.19_2=r351h6115d3f_0
   - r-colorspace=1.4_1=r351hcdcec82_0
   - r-desolve=1.21=r351ha65eedd_1000
   - r-digest=0.6.18=r351h96ca727_1000
+  - r-geiger=2.0.6=r351h29659fb_3
   - r-lattice=0.20_38=r351h96ca727_1000
   - r-mass=7.3_51.1=r351h96ca727_1000
   - r-mvtnorm=1.0_10=r351h9bbef5b_0
@@ -161,16 +173,28 @@ dependencies:
   - r-subplex=1.5_4=r351ha65eedd_1001
   - ratelimiter=1.2.0=py36_1000
   - readline=7.0=hf8c457e_1001
+  - repeatmasker=4.0.6=6
   - requests=2.13.0=py36_0
+  - rmblast=2.6.0=h4422958_0
+  - rsa=3.1.4=py36_0
   - s3transfer=0.1.13=py36_1001
   - scipy=1.2.1=py36h09a28d5_1
   - setuptools=40.8.0=py36_0
+  - sip=4.18=py36_1
   - six=1.12.0=py36_1000
   - smmap2=2.0.5=py_0
+  - snakemake=5.4.4=0
+  - snakemake-minimal=5.4.4=py_1
   - sqlite=3.26.0=h67949de_1001
+  - t_coffee=11.0.8=py36_2
   - tk=8.6.9=h84994c4_1001
+  - tktable=2.10=h14c3975_0
+  - tornado=6.0.2=py36h516909a_0
+  - tqdm=4.7.2=py36_0
   - traitlets=4.3.2=py36_1000
+  - trf=4.09=1
   - typing_extensions=3.7.2=py36_1000
+  - urllib3=1.12=py36_0
   - wcwidth=0.1.7=py_1
   - wheel=0.33.1=py36_0
   - wrapt=1.11.1=py36h14c3975_0
@@ -192,60 +216,5 @@ dependencies:
   - yaml=0.1.7=h14c3975_1001
   - yarl=1.3.0=py36h14c3975_1000
   - zlib=1.2.11=h14c3975_1004
-  - _r-mutex=1.0.0=anacondar_1
-  - binutils_impl_linux-64=2.31.1=h6176602_1
-  - binutils_linux-64=2.31.1=h6176602_3
-  - bwidget=1.9.11=1
-  - gfortran_impl_linux-64=7.3.0=hdf63c60_1
-  - gfortran_linux-64=7.3.0=h553295d_3
-  - libgcc-ng=8.2.0=hdf63c60_1
-  - libgfortran-ng=7.3.0=hdf63c60_0
-  - libstdcxx-ng=8.2.0=hdf63c60_1
-  - tktable=2.10=h14c3975_0
-  - fastml=3.1=pl5.20.3_1
-  - tqdm==4.27.0
-#  - pip:
-#    - atropos==1.1.16
-#    - autopep8==1.4.2
-#    - bcbio-gff==0.6.6
-#    - biokit==0.4.2
-#    - bioservices==1.5.1
-#    - black==18.5b0
-#    - cbemd==1.0
-#    - colorlog==3.1.2
-#    - colormap==1.0.1
-#    - colormath==3.0.0
-#    - docopt==0.6.2
-#    - easydev==0.9.36
-#    - emd==0.0.0
-#    - future==0.16.0
-#    - grequests==0.3.0
-#    - joblib==0.12.5
-#    - line-profiler==2.1.2
-#    - lzstring==1.0.3
-#    - mock==2.0.0
-#    - multiqc==1.0
-#    - objgraph==3.4.0
-#    - pbr==3.1.1
-#    - progressbar2==3.34.3
-#    - pushbullet.py==0.11.0
-#    - pyemd==0.4.4
-#    - pykwalify==1.6.0
-#    - pymc3==3.5
-#    - pyparsing==2.2.0
-#    - pysam==0.12.0.1
-#    - pystan==2.18.0.0
-#    - python-magic==0.4.15
-#    - python-utils==2.2.0
-#    - pyvcf==0.6.8
-#    - requests-cache==0.4.13
-#    - ruamel.yaml==0.15.0
-#    - simplejson==3.13.2
-#    - spectra==0.0.11
-#    - suds-jurko==0.6
-#    - svgwrite==1.1.11
-#    - theano==1.0.3
-#    - websocket-client==0.53.0
-#    - xmltodict==0.11.0
-#prefix: /opt/modules/pkgs/anaconda/3.6/envs/phylogeny
+prefix: /opt/modules/pkgs/anaconda/3.6/envs/phylogeny
 
