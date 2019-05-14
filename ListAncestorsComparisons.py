@@ -10,7 +10,9 @@ from os import path
 from sys import stderr, stdout
 from argparse import ArgumentParser, ArgumentTypeError
 from numpy.random import permutation
+import numpy as np
 import pandas as pd
+from matplotlib.pyplot import hist, subplot, title, savefig, vlines, tight_layout, ylim
 from bisect import bisect
 from Bio import SeqIO, AlignIO
 from scipy.stats import fisher_exact
@@ -178,7 +180,9 @@ def relabel_tree(tree, target_species_fasta):
                 # There's some kind of error that happens if there's only one
                 # outgroup species
                 outgroup_root.clear_child_nodes()
-                outgroup_root.taxon = tree.taxon_set.new_taxon(outgroup_root.label)
+                outgroup_root.taxon = tree.taxon_namespace.new_taxon(
+                    outgroup_root.label
+                )
             else:
                 pass
         except SeedNodeDeletionException:
@@ -266,7 +270,7 @@ def score_tree(
                 print("ERR:", mpra_data.loc[enhancer_name, homo_pos], file=stderr)
                 print("ERR:", err, file=stderr)
 
-        node.annotations['udn'] = f"{branch_du}U {branch_dn}N {branch_dd}D"
+        node.annotations["udn"] = f"{branch_du}U {branch_dn}N {branch_dd}D"
         overall_du += branch_du
         overall_dd += branch_dd
         overall_dn += branch_dn
@@ -368,9 +372,10 @@ if __name__ == "__main__":
     if ARGS.output_tree:
         TREE.write_to_path(ARGS.output_tree, "nexus", suppress_annotations=False)
 
-
     SHUFFLED_KUKNS = []
     SHUFFLED_KDKNS = []
+    SHUFFLED_KUKN_PS = []
+    SHUFFLED_KDKN_PS = []
     for i in tqdm(range(1000)):
         SHUFFLED_MPRA = shuffle_mpra(MPRA_DATA)
         KUKN_SHUF, KDKN_SHUF = score_tree(
@@ -383,6 +388,8 @@ if __name__ == "__main__":
         )
         SHUFFLED_KUKNS.append(KUKN_SHUF[0])
         SHUFFLED_KDKNS.append(KDKN_SHUF[0])
+        SHUFFLED_KUKN_PS.append(KUKN_SHUF[1])
+        SHUFFLED_KDKN_PS.append(KDKN_SHUF[1])
     SHUFFLED_KUKNS.sort()
     SHUFFLED_KDKNS.sort()
 
@@ -394,3 +401,22 @@ if __name__ == "__main__":
         "Empirical KdKn p-value",
         bisect(SHUFFLED_KDKNS, REAL_DATA[1][0]) / len(SHUFFLED_KDKNS),
     )
+
+    subplot(2, 2, 1)
+    hist(np.log2(SHUFFLED_KDKNS), bins=50)
+    vlines(np.log2(REAL_DATA[1][0]), *ylim())
+    title("log2 Kd/Kn shuffled")
+    subplot(2, 2, 2)
+    hist(np.log2(SHUFFLED_KUKNS), bins=50)
+    vlines(np.log2(REAL_DATA[0][0]), *ylim())
+    title("log2 Ku/Kn shuffled")
+    subplot(2, 2, 3)
+    hist(SHUFFLED_KDKN_PS, bins=50)
+    title("Kd/Kn shuffled p-values")
+    subplot(2, 2, 4)
+    hist(SHUFFLED_KUKN_PS, bins=50)
+    title("Ku/Kn shuffled p-values")
+
+    tight_layout()
+
+    savefig(ARGS.output_tree + ".shuffledpvals.png")

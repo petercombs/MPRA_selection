@@ -388,6 +388,7 @@ rule ancestor_comparisons:
                 else wildcards.enhancer)
     conda: "envs/conda.yaml"
     shell: """
+    export MPLBACKEND=Agg
     python {input.script} \
         --enhancer-name {params.ename} \
         -t {input.primates} \
@@ -417,6 +418,7 @@ rule merged_ancestor_comparisons:
 
     conda: "envs/conda.yaml"
     shell: """
+    export MPLBACKEND=Agg
     python {input.script} \
         --enhancer-name {params.ename} \
         --{params.data_style} \
