@@ -205,11 +205,8 @@ rule clustal_to_fasta:
         "{file}_aligned.clustal"
     output:
         "{file}_aligned.fasta"
-    #conda: "envs/conda.yaml"
-    run:
-        from Bio import SeqIO
-        in_recs = SeqIO.parse(input[0], 'clustal')
-        SeqIO.write(in_recs, output[0], 'fasta')
+    conda: "envs/conda.yaml"
+    shell: "python ClustalToFasta.py {input} {output}"
 
 rule muscle_align:
     input:
