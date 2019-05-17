@@ -431,13 +431,14 @@ rule merged_ancestor_comparisons:
 rule comparisons_figure:
     input:
         tree="{dir}/comparisons.tree",
-        figtreeconf="Reference/figtree.conf",
+        figtreeconf="Reference/figtree.{updown}.conf",
     output:
-        with_plot="{dir}/comparisons.figtree.tree",
-        imageraster="{dir}/comparisons.png",
-        imagevector="{dir}/comparisons.pdf",
+        with_plot="{dir}/comparisons.{updown}.tree",
+        imageraster="{dir}/comparisons.{updown}.png",
+        imagevector="{dir}/comparisons.{updown}.pdf",
     shell: """
     cat {input} > {output.with_plot}
+    unset DISPLAY
     figtree -width 1200 -height 900 -graphic PNG {output.with_plot} {output.imageraster}
     figtree -width 1200 -height 900 -graphic PDF {output.with_plot} {output.imagevector}
 
@@ -446,7 +447,15 @@ rule comparisons_figure:
 rule renamed_figures:
     input:
         "figures/exists",
-        fig="enhancers/{enhancer}/mammals/comparisons.{type}",
+        fig="enhancers/{enhancer}/mammals/comparisons.{updown}.{type}",
+    output:
+        fig="figures/{enhancer}.{updown}.{type}"
+    shell: "cp {input.fig} {output.fig}"
+
+rule rename_pvals:
+    input:
+        "figures/exists",
+        fig="enhancers/{enhancer}/mammals/comparisons.tree.shuffledpvals.png",
     output:
         fig="figures/{enhancer}.{type}"
     shell: "cp {input.fig} {output.fig}"
@@ -475,8 +484,9 @@ rule all_selection:
 
 rule all_figures:
     input:
-        expand("figures/{enhancer}.{types}",
+        a=expand("figures/{enhancer}.{updown}.{types}",
             enhancer=config["data_files"].keys(),
+            updown=["kukn", "kdkn"],
             types=["png", "pdf"],
         )
 
