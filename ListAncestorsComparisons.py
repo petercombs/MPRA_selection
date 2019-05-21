@@ -139,6 +139,7 @@ def get_mpra_data(args):
         - in_data.iloc[:, args.position_column].min()
         + 1
     )
+    in_data.iloc[:, args.alt_column].name = 'Alt'
     index = pd.MultiIndex.from_arrays(
         [
             in_data.iloc[:, args.element_column],
@@ -180,11 +181,10 @@ def relabel_tree(tree, target_species_fasta):
                 # There's some kind of error that happens if there's only one
                 # outgroup species
                 outgroup_root.clear_child_nodes()
-                outgroup_root.taxon = tree.taxon_namespace.new_taxon(
-                    outgroup_root.label
-                )
             else:
                 pass
+            outgroup_root.taxon = tree.taxon_namespace.new_taxon("Outgroup")
+            outgroup_root.label = "Outgroup"
         except SeedNodeDeletionException:
             print(
                 "WARNING: No species were provided that are not in the target group",
@@ -226,6 +226,8 @@ def score_tree(
             continue
         parent_name = node.parent_node.label.replace(" ", "_")
         node_name = (node.label or node.taxon.label).replace(" ", "_")
+        if node_name == "Outgroup":
+            continue
 
         align_len = len(alignment[0])
         homo_pos = 0
