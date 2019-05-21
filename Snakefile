@@ -382,6 +382,7 @@ rule ancestor_comparisons:
     output:
         results="enhancers/{enhancer}/FastML/selection_results.txt",
         tree="enhancers/{enhancer}/FastML/comparisons.tree",
+        distros="enhancers/{enhancer}/FastML/comparisons.tree.shuffledpvals.png",
     params:
         ename=lambda wildcards: (wildcards.enhancer.lower()
                 if 'Patwardhan' in config['data_files'][wildcards.enhancer]
@@ -410,6 +411,7 @@ rule merged_ancestor_comparisons:
     output:
         results="enhancers/{enhancer}/{merged}/selection_results.txt",
         tree="enhancers/{enhancer}/{merged}/comparisons.tree",
+        distros="enhancers/{enhancer}/{merged}/comparisons.tree.shuffledpvals.png",
     params:
         ename=lambda wildcards: (wildcards.enhancer.lower()
                 if 'Patwardhan' in config['data_files'][wildcards.enhancer]
@@ -444,6 +446,7 @@ rule comparisons_figure:
 
     """
 
+
 rule renamed_figures:
     input:
         "figures/exists",
@@ -457,8 +460,10 @@ rule rename_pvals:
         "figures/exists",
         fig="enhancers/{enhancer}/mammals/comparisons.tree.shuffledpvals.png",
     output:
-        fig="figures/{enhancer}.{type}"
+        fig="figures/{enhancer}.shuffledpvals.png"
     shell: "cp {input.fig} {output.fig}"
+
+ruleorder:  ancestor_comparisons > merged_ancestor_comparisons > comparisons_figure > rename_pvals > renamed_figures
 
 rule all_mammal_seqs:
     input:
@@ -488,8 +493,11 @@ rule all_figures:
             enhancer=config["data_files"].keys(),
             updown=["kukn", "kdkn"],
             types=["png", "pdf"],
-        )
+        ),
+        b=expand("figures/{enhancer}.shuffledpvals.png",
+                enhancer=config["data_files"].keys(),
+                ),
 
 
 localrules: exists
-localrules: all_mammal_seqs, all_repmasked, all_selection, all_figures, renamed_figures
+localrules: all_mammal_seqs, all_repmasked, all_selection, all_figures, renamed_figures, rename_pvals
