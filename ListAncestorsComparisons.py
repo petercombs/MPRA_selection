@@ -217,6 +217,9 @@ def score_tree(
 
     """
 
+    outfile = stdout if verbose else open("/dev/null", "w")
+    outerr = stderr if verbose else open("/dev/null", "w")
+
     overall_du = 0
     overall_dd = 0
     overall_dn = 0
@@ -244,8 +247,13 @@ def score_tree(
                 homo_pos += 1
                 continue
             homo_pos += 1
+
             try:
-                if parent_seq[i] == "-" or child_seq[i] == "-":
+                if (
+                    parent_seq[i] == child_seq[i]
+                    or parent_seq[i] == "-"
+                    or child_seq[i] == "-"
+                ):
                     continue
                 elif parent_seq[i] == homo_seq[i] and parent_seq[i] != child_seq[i]:
                     if len(mpra_data.loc[enhancer_name, homo_pos]) < 3:
@@ -268,9 +276,9 @@ def score_tree(
                     else:
                         branch_du += 1
             except Exception as err:
-                print("ERR:", homo_seq[i], parent_seq[i], child_seq[i], file=stderr)
-                print("ERR:", mpra_data.loc[enhancer_name, homo_pos], file=stderr)
-                print("ERR:", err, file=stderr)
+                print("ERR:", homo_pos, homo_seq[i], parent_seq[i], child_seq[i], file=outerr)
+                #print("ERR:", mpra_data.loc[enhancer_name, homo_pos], file=outerr)
+                print("ERR:", type(err), err, file=outerr)
 
         node.annotations["udn"] = f"{branch_du}U {branch_dn}N {branch_dd}D"
         overall_du += branch_du
@@ -284,27 +292,23 @@ def score_tree(
             f"{branch_dn}N",
             f"{branch_dd}D",
             sep="\t",
-            file=stdout if verbose else open("/dev/null", "w"),
+            file=outfile,
         )
 
     possible_u = len(mpra_data.query("Value > 0 and pval < .05"))
     possible_d = len(mpra_data.query("Value < 0 and pval < .05"))
     possible_n = len(mpra_data.query("pval > .05"))
 
-    kukn_fisher = fisher_exact([[overall_du, overall_dn], [possible_u, possible_n]])
-    kdkn_fisher = fisher_exact([[overall_dd, overall_dn], [possible_d, possible_n]])
+    kukn_fisher = fisher_exact(
+        [[overall_du, overall_dn], [possible_u - overall_du, possible_n - overall_dn]]
+    )
+    kdkn_fisher = fisher_exact(
+        [[overall_dd, overall_dn], [possible_d - overall_dd, possible_n - overall_dn]]
+    )
 
-    print(
-        f"Possible up: {possible_u}", file=stdout if verbose else open("/dev/null", "w")
-    )
-    print(
-        f"Possible neutral: {possible_n}",
-        file=stdout if verbose else open("/dev/null", "w"),
-    )
-    print(
-        f"Possible down: {possible_d}",
-        file=stdout if verbose else open("/dev/null", "w"),
-    )
+    print(f"Possible up: {possible_u}", file=outfile)
+    print(f"Possible neutral: {possible_n}", file=outfile)
+    print(f"Possible down: {possible_d}", file=outfile)
 
     if possible_u > 0 and possible_n > 0 and overall_dn > 0 and overall_du > 0:
         print(
@@ -316,26 +320,26 @@ def score_tree(
                 overall_dn,
                 possible_n,
             ),
-            file=stdout if verbose else open("/dev/null", "w"),
+            file=outfile,
         )
     else:
         print(
             f"Overall Ku/Kn not well defined: "
             + f"Ku = {overall_du}/{possible_u}, Kn = {overall_dn}/{possible_n}",
-            file=stdout if verbose else open("/dev/null", "w"),
+            file=outfile,
         )
     if possible_d > 0 and possible_n > 0 and overall_dn > 0 and overall_dd > 0:
         print(
             "Overall Kd/Kn {} (p={})".format(
                 (overall_dd / possible_d) / (overall_dn / possible_n), kdkn_fisher[1]
             ),
-            file=stdout if verbose else open("/dev/null", "w"),
+            file=outfile,
         )
     else:
         print(
             f"Overall Kd/Kn not well defined: "
             + f"Kd = {overall_dd}/{possible_d}, Kn = {overall_dn}/{possible_n}",
-            file=stdout if verbose else open("/dev/null", "w"),
+            file=outfile,
         )
     return kukn_fisher, kdkn_fisher
 
