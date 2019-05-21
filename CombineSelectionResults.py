@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sys import argv
 from re import compile
-from matplotlib.pyplot import scatter, xlabel, ylabel, savefig, text, gca
+from matplotlib.pyplot import scatter, xlabel, ylabel, savefig, text, gca, clf
 
 numerator_direction = compile("; ?\(([0-9]*)/")
 numerator_neutral = compile("\)/\(([0-9]*)/")
@@ -44,10 +44,10 @@ if __name__ == "__main__":
                     pns[enhancer] = int(data[-1])
                 elif line.startswith("Empirical KuKn"):
                     val = float(data[-1])
-                    kukn_empirical[enhancer] = min(val, 1 - (val)) * 2
+                    kukn_empirical[enhancer] = min(val, 1 - (val)) * 2 + 1e-3
                 elif line.startswith("Empirical KdKn"):
                     val = float(data[-1])
-                    kdkn_empirical[enhancer] = min(val, 1 - (val)) * 2
+                    kdkn_empirical[enhancer] = min(val, 1 - (val)) * 2 + 1e-3
             except ValueError:
                 continue
     out = pd.DataFrame(
@@ -67,23 +67,31 @@ if __name__ == "__main__":
         }
     )
 
-    out.to_csv("figures/data.tsv", sep="\t")
-    scatter(
-        -np.sign(np.log(out.KdKn)) * np.log10(out.KdKn_empirical_p),
-        -np.sign(np.log(out.KuKn)) * np.log10(out.KuKn_empirical_p),
-    )
+    pvals_by_type = {
+        'empirical': (out.KuKn_empirical_p, out.KdKn_empirical_p),
+        'fisher': (out.KuKn_fisher_p, out.KdKn_fisher_p),
+    }
 
-    for ix in out.index:
-        text(
-            -np.sign(np.log(out.KdKn.loc[ix])) * np.log10(out.KdKn_empirical_p.loc[ix]),
-            -np.sign(np.log(out.KuKn.loc[ix])) * np.log10(out.KuKn_empirical_p.loc[ix]),
-            ix,
+    out.to_csv("figures/data.tsv", sep="\t")
+
+    for pval_type, pvals in  pvals_by_type.items():
+        clf()
+        scatter(
+            -np.sign(np.log(out.KdKn)) * np.log10(pvals[1]),
+            -np.sign(np.log(out.KuKn)) * np.log10(pvals[0]),
         )
 
-    ax = gca()
-    ax.spines["bottom"].set_position(("data", 0))
-    ax.spines["left"].set_position(("data", 0))
-    ax.spines["top"].set_alpha(0)
-    ax.spines["right"].set_alpha(0)
+        for ix in out.index:
+            text(
+                -np.sign(np.log(out.KdKn.loc[ix])) * np.log10(pvals[1].loc[ix]),
+                -np.sign(np.log(out.KuKn.loc[ix])) * np.log10(pvals[0].loc[ix]),
+                ix,
+            )
 
-    savefig("figures/data.png")
+        ax = gca()
+        ax.spines["bottom"].set_position(("data", 0))
+        ax.spines["left"].set_position(("data", 0))
+        ax.spines["top"].set_alpha(0)
+        ax.spines["right"].set_alpha(0)
+
+        savefig(f"figures/data_{pval_type}.png")
