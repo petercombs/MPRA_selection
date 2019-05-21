@@ -15,7 +15,7 @@ import pandas as pd
 from matplotlib.pyplot import hist, subplot, title, savefig, vlines, tight_layout, ylim
 from bisect import bisect
 from Bio import SeqIO, AlignIO
-from scipy.stats import fisher_exact
+from scipy.stats import fisher_exact, kstest, chi2_contingency
 from tqdm import tqdm
 from dendropy import Tree, Taxon
 from dendropy.utility.error import SeedNodeDeletionException
@@ -234,12 +234,14 @@ def score_tree(
 
         align_len = len(alignment[0])
         homo_pos = 0
-        homo_seq = alignment[alignment_posns["original"]]
+
         parent_seq = alignment[alignment_posns[parent_name]]
         child_seq = alignment[alignment_posns[node_name]]
+
         branch_du = 0
         branch_dd = 0
         branch_dn = 0
+
         for i in range(align_len):
             if homo_seq[i] == "-":
                 continue
@@ -281,6 +283,25 @@ def score_tree(
                 print("ERR:", type(err), err, file=outerr)
 
         node.annotations["udn"] = f"{branch_du}U {branch_dn}N {branch_dd}D"
+        if possible_u > 0 and possible_n > 0 and branch_dn > 0:
+            node.annotations["kukn"] = (
+                np.log2((branch_du / possible_u) / (branch_dn / possible_n))
+                if branch_du > 0
+                else -3
+            )
+            node.annotations["ku"] = branch_du / possible_u
+            node.annotations["kn"] = branch_dn / possible_n
+        else:
+            node.annotations["kukn"] = 0
+        if possible_d > 0 and possible_n > 0 and branch_dn > 0:
+            node.annotations["kdkn"] = (
+                np.log2((branch_dd / possible_d) / (branch_dn / possible_n))
+                if branch_dd > 0
+                else -3
+            )
+            node.annotations["kd"] = branch_dd / possible_d
+        else:
+            node.annotations["kdkn"] = 0
         overall_du += branch_du
         overall_dd += branch_dd
         overall_dn += branch_dn
@@ -330,8 +351,13 @@ def score_tree(
         )
     if possible_d > 0 and possible_n > 0 and overall_dn > 0 and overall_dd > 0:
         print(
-            "Overall Kd/Kn {} (p={})".format(
-                (overall_dd / possible_d) / (overall_dn / possible_n), kdkn_fisher[1]
+            "Overall Kd/Kn {} (p={};({}/{})/({}/{})); ".format(
+                (overall_dd / possible_d) / (overall_dn / possible_n),
+                kdkn_fisher[1],
+                overall_dd,
+                possible_d,
+                overall_dn,
+                possible_n,
             ),
             file=outfile,
         )
@@ -341,7 +367,31 @@ def score_tree(
             + f"Kd = {overall_dd}/{possible_d}, Kn = {overall_dn}/{possible_n}",
             file=outfile,
         )
-    return kukn_fisher, kdkn_fisher
+    kukn = (
+        (overall_du / possible_u) / (overall_dn / possible_n)
+        if np.all([possible_u, possible_n, overall_dn])
+        else np.inf
+    )
+    kdkn = (
+        (overall_dd / possible_d) / (overall_dn / possible_n)
+        if np.all([possible_d, possible_n, overall_dn])
+        else np.inf
+    )
+    if overall_du > 3 and overall_dn > 3 and overall_dd > 3:
+        chi2_test = chi2_contingency(
+            [
+                [overall_du, overall_dn, overall_dd],
+                [
+                    possible_u - overall_du,
+                    possible_n - overall_dn,
+                    possible_d - overall_dd,
+                ],
+            ]
+        )
+    else:
+        chi2_test = (0, 1)
+    print("Overall Chi2 {} (p={})".format(chi2_test[0], chi2_test[1]), file=outfile)
+    return ((kukn, kukn_fisher[1]), (kdkn, kdkn_fisher[1]), chi2_test[:2])
 
 
 def shuffle_mpra(mpra_data):
@@ -380,11 +430,14 @@ if __name__ == "__main__":
 
     SHUFFLED_KUKNS = []
     SHUFFLED_KDKNS = []
+    SHUFFLED_CHI2S = []
     SHUFFLED_KUKN_PS = []
     SHUFFLED_KDKN_PS = []
-    for i in tqdm(range(1000)):
+    SHUFFLED_CHI2_PS = []
+
+    for _ in tqdm(range(1000)):
         SHUFFLED_MPRA = shuffle_mpra(MPRA_DATA)
-        KUKN_SHUF, KDKN_SHUF = score_tree(
+        KUKN_SHUF, KDKN_SHUF, CHI2_SHUF = score_tree(
             TREE,
             ALIGNMENT,
             ALIGNMENT_POSNS,
@@ -394,10 +447,19 @@ if __name__ == "__main__":
         )
         SHUFFLED_KUKNS.append(KUKN_SHUF[0])
         SHUFFLED_KDKNS.append(KDKN_SHUF[0])
+        SHUFFLED_CHI2S.append(CHI2_SHUF[0])
+
         SHUFFLED_KUKN_PS.append(KUKN_SHUF[1])
         SHUFFLED_KDKN_PS.append(KDKN_SHUF[1])
+        SHUFFLED_CHI2_PS.append(CHI2_SHUF[1])
+
     SHUFFLED_KUKNS.sort()
     SHUFFLED_KDKNS.sort()
+    SHUFFLED_CHI2S.sort()
+
+    print("KuKn shuffles KS test", kstest(SHUFFLED_KUKN_PS, "uniform"))
+    print("KdKn shuffles KS test", kstest(SHUFFLED_KDKN_PS, "uniform"))
+    print("Chi2 shuffles KS test", kstest(SHUFFLED_CHI2_PS, "uniform"))
 
     print(
         "Empirical KuKn p-value",
@@ -407,21 +469,59 @@ if __name__ == "__main__":
         "Empirical KdKn p-value",
         bisect(SHUFFLED_KDKNS, REAL_DATA[1][0]) / len(SHUFFLED_KDKNS),
     )
+    print(
+        "Empirical Chi2 p-value",
+        bisect(SHUFFLED_KDKNS, REAL_DATA[1][0]) / len(SHUFFLED_KDKNS),
+    )
 
-    subplot(2, 2, 1)
-    hist(np.log2(SHUFFLED_KDKNS), bins=50)
-    vlines(np.log2(REAL_DATA[1][0]), *ylim())
-    title("log2 Kd/Kn shuffled")
-    subplot(2, 2, 2)
-    hist(np.log2(SHUFFLED_KUKNS), bins=50)
-    vlines(np.log2(REAL_DATA[0][0]), *ylim())
-    title("log2 Ku/Kn shuffled")
-    subplot(2, 2, 3)
-    hist(SHUFFLED_KDKN_PS, bins=50)
-    title("Kd/Kn shuffled p-values")
-    subplot(2, 2, 4)
-    hist(SHUFFLED_KUKN_PS, bins=50)
-    title("Ku/Kn shuffled p-values")
+    subplot(2, 3, 1)
+    try:
+        if sum(np.isfinite(np.log2(SHUFFLED_KDKNS))):
+            hist(np.log2(SHUFFLED_KDKNS), bins=50)
+            vlines(np.log2(REAL_DATA[1][0]), *ylim(), colors="r")
+            vlines(0, *ylim(), colors="k", linestyles="dashed")
+        title("log2 Kd/Kn shuffled")
+    except:
+        pass
+
+    subplot(2, 3, 2)
+    try:
+        if sum(np.isfinite(np.log2(SHUFFLED_KUKNS))):
+            hist(np.log2(SHUFFLED_KUKNS), bins=50)
+            vlines(np.log2(REAL_DATA[0][0]), *ylim(), color="r")
+            vlines(0, *ylim(), colors="k", linestyles="dashed")
+        title("log2 Ku/Kn shuffled")
+    except:
+        pass
+
+    subplot(2, 3, 3)
+    try:
+        if sum(np.isfinite(np.log2(SHUFFLED_CHI2S))):
+            hist(SHUFFLED_CHI2S, bins=50)
+            vlines(REAL_DATA[2][0], *ylim(), color="r")
+            vlines(2, *ylim(), colors="k", linestyles="dashed")
+        title("Chi^2 shuffled")
+    except:
+        pass
+
+    subplot(2, 3, 4)
+    try:
+        hist(SHUFFLED_KDKN_PS, bins=np.arange(0, 1, .02))
+        title("Kd/Kn shuffled p-values")
+    except:
+        pass
+    subplot(2, 3, 5)
+    try:
+        hist(SHUFFLED_KUKN_PS, bins=np.arange(0, 1, .02))
+        title("Ku/Kn shuffled p-values")
+    except:
+        pass
+    subplot(2, 3, 6)
+    try:
+        hist(SHUFFLED_CHI2_PS, bins=np.arange(0, 1, .02))
+        title("Chi2 shuffled p-values")
+    except:
+        pass
 
     tight_layout()
 
