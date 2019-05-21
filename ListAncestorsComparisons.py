@@ -394,15 +394,15 @@ def score_tree(
     return ((kukn, kukn_fisher[1]), (kdkn, kdkn_fisher[1]), chi2_test[:2])
 
 
-def shuffle_mpra(mpra_data):
+def shuffle_mpra(mpra_data, element):
     """Shuffle data by base that we're switching to
 
     """
     out = mpra_data.copy()
-    for base in out.index.levels[2]:
-        out.loc[(slice(None), slice(None), base), :] = permutation(
-            out.loc[(slice(None), slice(None), base), :]
-        )
+
+    out.loc[(element, slice(None), slice(None)), :] = permutation(
+        out.loc[(element, slice(None), slice(None)), :]
+    )
 
     return out
 
@@ -436,7 +436,7 @@ if __name__ == "__main__":
     SHUFFLED_CHI2_PS = []
 
     for _ in tqdm(range(1000)):
-        SHUFFLED_MPRA = shuffle_mpra(MPRA_DATA)
+        SHUFFLED_MPRA = shuffle_mpra(MPRA_DATA, ARGS.enhancer_name)
         KUKN_SHUF, KDKN_SHUF, CHI2_SHUF = score_tree(
             TREE,
             ALIGNMENT,
