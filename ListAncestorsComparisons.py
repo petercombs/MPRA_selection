@@ -210,6 +210,31 @@ def relabel_tree(tree, target_species_fasta):
             node.annotations["species"] = node.taxon.label if node.taxon else node.label
 
 
+def f1_score(called_pos, called_neg, beta=1):
+    """Compute the F1 score for a given list of positive and negative calls
+
+    input:
+        called_pos and called_neg are array-likes that contain the real values
+        for samples that have been called as positive and negative.
+
+        optional beta parameter can be used to set the balance between false
+        positives and negatives
+
+    usage:
+        hbg1 = mpra.loc[mpra.Element == 'HBG1'].sort_values(by='absVal')
+
+        cutoff = 0.1
+        f1_score(hbg1.pval[hbg1.absVal >= cutoff] < .05,
+                 hbg1.pval[hbg1.absVal < cutoff] < .05)
+
+    https://en.wikipedia.org/wiki/F1_score
+    """
+    tp = sum(called_pos)
+    fp = sum(called_neg)
+    fn = sum(~called_pos)
+    return (1 + beta ** 2) * tp / ((1 + beta ** 2) * tp + beta ** 2 * fn + fp)
+
+
 def score_tree(
     tree, alignment, alignment_posns, mpra_data, enhancer_name, verbose=True
 ):
@@ -220,9 +245,46 @@ def score_tree(
     outfile = stdout if verbose else open("/dev/null", "w")
     outerr = stderr if verbose else open("/dev/null", "w")
 
+    align_len = len(alignment[0])
+
     overall_du = 0
     overall_dd = 0
     overall_dn = 0
+
+    cutoff = 0.1
+
+    homo_seq = alignment[alignment_posns["original"]]
+    root_seq = alignment[alignment_posns["N1"]]
+
+    homo_pos = 0
+
+    possible_u = 0
+    possible_d = 0
+    possible_n = 0
+
+    for i in range(align_len):
+        if homo_seq[i] == "-":
+            continue
+        if homo_seq[i] == "N" or root_seq[i] == "N" or root_seq[i] == "-":
+            homo_pos += 1
+            continue
+        homo_pos += 1
+
+        try:
+            vals = mpra_data.loc[(enhancer_name, homo_pos, slice(None)), "Value"].copy()
+
+            if homo_seq[i] != root_seq[i]:
+                offset = vals[(enhancer_name, homo_pos, root_seq[i])]
+                vals -= offset
+                # Since we are just counting at the moment, the human value is just
+                # the negative of the root value
+                vals[(enhancer_name, homo_pos, root_seq[i])] = -offset
+
+            possible_u += sum(vals > cutoff)
+            possible_d += sum(vals < -cutoff)
+            possible_n += sum((-cutoff <= vals) & (vals <= cutoff))
+        except KeyError:
+            pass
 
     for node in tree:
         if node.parent_node is None:
@@ -232,7 +294,6 @@ def score_tree(
         if node_name == "Outgroup":
             continue
 
-        align_len = len(alignment[0])
         homo_pos = 0
 
         parent_seq = alignment[alignment_posns[parent_name]]
@@ -259,33 +320,54 @@ def score_tree(
                     continue
                 elif parent_seq[i] == homo_seq[i] and parent_seq[i] != child_seq[i]:
                     if len(mpra_data.loc[enhancer_name, homo_pos]) < 3:
-                        continue
+                        raise ValueError(f"Missing one or more bases at {homo_pos}")
                     mpra_row = mpra_data.loc[enhancer_name, homo_pos, child_seq[i]]
-                    if mpra_row.pval > .05:
-                        branch_dn += 1
-                    elif mpra_row.Value < 0:
-                        branch_dd += 1
-                    else:
-                        branch_du += 1
+                    val = mpra_row.Value
                 elif child_seq[i] == homo_seq[i] and parent_seq[i] != child_seq[i]:
                     if len(mpra_data.loc[enhancer_name, homo_pos]) < 3:
                         raise ValueError(f"Missing one or more bases at {homo_pos}")
                     mpra_row = mpra_data.loc[enhancer_name, homo_pos, parent_seq[i]]
-                    if mpra_row.pval > .05:
-                        branch_dn += 1
-                    elif mpra_row.Value > 0:
-                        branch_dd += 1
-                    else:
-                        branch_du += 1
+                    val = -mpra_row.Value
+                elif parent_seq[i] != child_seq[i]:
+                    if len(mpra_data.loc[enhancer_name, homo_pos]) < 3:
+                        raise ValueError(f"Missing one or more bases at {homo_pos}")
+                    parent_mpra_row = mpra_data.loc[
+                        enhancer_name, homo_pos, parent_seq[i]
+                    ]
+                    child_mpra_row = mpra_data.loc[
+                        enhancer_name, homo_pos, child_seq[i]
+                    ]
+                    val = child_mpra_row.Value - parent_mpra_row.Value
+                else:
+                    raise ValueError(
+                        f"Error in column {i} (hpos {homo_pos}: H{homo_seq[i]} P{parent_seq[i]} C{child_seq[i]}"
+                    )
+
+                if val > cutoff:
+                    branch_du += 1
+                elif val < -cutoff:
+                    branch_dd += 1
+                else:
+                    branch_dn += 1
+
             except Exception as err:
-                print("ERR:", homo_pos, homo_seq[i], parent_seq[i], child_seq[i], file=outerr)
-                #print("ERR:", mpra_data.loc[enhancer_name, homo_pos], file=outerr)
+                print(
+                    "ERR:",
+                    homo_pos,
+                    homo_seq[i],
+                    parent_seq[i],
+                    child_seq[i],
+                    file=outerr,
+                )
+                # print("ERR:", mpra_data.loc[enhancer_name, homo_pos], file=outerr)
                 print("ERR:", type(err), err, file=outerr)
 
         node.annotations["udn"] = f"{branch_du}U {branch_dn}N {branch_dd}D"
         if possible_u > 0 and possible_n > 0 and branch_dn > 0:
             node.annotations["kukn"] = (
-                np.log2((branch_du / possible_u) / (branch_dn / possible_n))
+                np.clip(
+                    np.log2((branch_du / possible_u) / (branch_dn / possible_n)), -3, 3
+                )
                 if branch_du > 0
                 else -3
             )
@@ -315,10 +397,6 @@ def score_tree(
             sep="\t",
             file=outfile,
         )
-
-    possible_u = len(mpra_data.query("Value > 0 and pval < .05"))
-    possible_d = len(mpra_data.query("Value < 0 and pval < .05"))
-    possible_n = len(mpra_data.query("pval > .05"))
 
     kukn_fisher = fisher_exact(
         [[overall_du, overall_dn], [possible_u - overall_du, possible_n - overall_dn]]
