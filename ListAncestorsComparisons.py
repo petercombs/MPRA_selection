@@ -142,7 +142,8 @@ def get_mpra_data(args):
             in_data.iloc[:, args.element_column],
             in_data.pos,
             in_data.iloc[:, args.alt_column],
-        ]
+        ],
+        names=["Element", "Pos", "Alt"],
     )
 
     mpra_data = pd.DataFrame(
@@ -262,11 +263,41 @@ def score_tree(
                     else:
                         branch_du += 1
             except Exception as err:
-                print("ERR:", homo_seq[i], parent_seq[i], child_seq[i], file=stderr)
-                print("ERR:", mpra_data.loc[enhancer_name, homo_pos], file=stderr)
-                print("ERR:", err, file=stderr)
+                print(
+                    "ERR:",
+                    homo_pos,
+                    homo_seq[i],
+                    parent_seq[i],
+                    child_seq[i],
+                    file=outerr,
+                )
+                # print("ERR:", mpra_data.loc[enhancer_name, homo_pos], file=outerr)
+                print("ERR:", type(err), err, file=outerr)
 
-        node.annotations['udn'] = f"{branch_du}U {branch_dn}N {branch_dd}D"
+        node.annotations["udn"] = f"{branch_du}U {branch_dn}N {branch_dd}D"
+        if possible_u > 0 and possible_n > 0 and branch_dn > 0:
+            node.annotations["kukn"] = (
+                np.clip(
+                    np.log2((branch_du / possible_u) / (branch_dn / possible_n)), -3, 3
+                )
+                if branch_du > 0
+                else -3
+            )
+            node.annotations["ku"] = branch_du / possible_u
+            node.annotations["kn"] = branch_dn / possible_n
+        else:
+            node.annotations["kukn"] = 0
+        if possible_d > 0 and possible_n > 0 and branch_dn > 0:
+            node.annotations["kdkn"] = (
+                np.clip(
+                    np.log2((branch_dd / possible_d) / (branch_dn / possible_n)), -3, 3
+                )
+                if branch_dd > 0
+                else -3
+            )
+            node.annotations["kd"] = branch_dd / possible_d
+        else:
+            node.annotations["kdkn"] = 0
         overall_du += branch_du
         overall_dd += branch_dd
         overall_dn += branch_dn
