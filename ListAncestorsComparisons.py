@@ -145,7 +145,8 @@ def get_mpra_data(args):
             in_data.iloc[:, args.element_column],
             in_data.pos,
             in_data.iloc[:, args.alt_column],
-        ]
+        ],
+        names=["Element", "Pos", "Alt"],
     )
 
     mpra_data = pd.DataFrame(
@@ -377,7 +378,9 @@ def score_tree(
             node.annotations["kukn"] = 0
         if possible_d > 0 and possible_n > 0 and branch_dn > 0:
             node.annotations["kdkn"] = (
-                np.log2((branch_dd / possible_d) / (branch_dn / possible_n))
+                np.clip(
+                    np.log2((branch_dd / possible_d) / (branch_dn / possible_n)), -3, 3
+                )
                 if branch_dd > 0
                 else -3
             )
