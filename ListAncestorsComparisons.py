@@ -236,8 +236,21 @@ def f1_score(called_pos, called_neg, beta=1):
     return (1 + beta ** 2) * tp / ((1 + beta ** 2) * tp + beta ** 2 * fn + fp)
 
 
+def get_cutoff(values, pvals):
+    values = values.apply(np.abs).sort_values()
+    sig = pvals.loc[values.index] < .05
+    best_score = 0
+    best_val = None
+    for ix, val in enumerate(values):
+        score = f1_score(sig.iloc[ix:], sig.iloc[:ix])
+        if score > best_score:
+            best_score = score
+            best_val = val
+    return best_score, best_val
+
+
 def score_tree(
-    tree, alignment, alignment_posns, mpra_data, enhancer_name, verbose=True
+    tree, alignment, alignment_posns, mpra_data, enhancer_name, verbose=True, cutoff=0.1
 ):
     """ Score Ku/Kn and Kd/Kn for the given tree
 
@@ -251,8 +264,6 @@ def score_tree(
     overall_du = 0
     overall_dd = 0
     overall_dn = 0
-
-    cutoff = 0.1
 
     homo_seq = alignment[alignment_posns["original"]]
     root_seq = alignment[alignment_posns["N1"]]
@@ -502,8 +513,15 @@ if __name__ == "__main__":
 
     relabel_tree(TREE, ARGS.target_species_fasta)
 
+    SCORE, CUTOFF = get_cutoff(
+        MPRA_DATA.loc[(ARGS.enhancer_name, slice(None), slice(None)), "Value"],
+        MPRA_DATA.loc[(ARGS.enhancer_name, slice(None), slice(None)), "pval"],
+    )
+    print(f"Best F1 {SCORE} at {CUTOFF}", file=stdout)
+    stdout.flush()
+
     REAL_DATA = score_tree(
-        TREE, ALIGNMENT, ALIGNMENT_POSNS, MPRA_DATA, ARGS.enhancer_name
+        TREE, ALIGNMENT, ALIGNMENT_POSNS, MPRA_DATA, ARGS.enhancer_name, cutoff=CUTOFF
     )
 
     if ARGS.output_tree:
@@ -525,6 +543,7 @@ if __name__ == "__main__":
             SHUFFLED_MPRA,
             ARGS.enhancer_name,
             verbose=False,
+            cutoff=CUTOFF,
         )
         SHUFFLED_KUKNS.append(KUKN_SHUF[0])
         SHUFFLED_KDKNS.append(KDKN_SHUF[0])
