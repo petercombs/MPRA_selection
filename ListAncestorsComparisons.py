@@ -223,6 +223,8 @@ def score_tree(
     outfile = stdout if verbose else open("/dev/null", "w")
     outerr = stderr if verbose else open("/dev/null", "w")
 
+    homo_seq = alignment[alignment_posns['original']]
+
     overall_du = 0
     overall_dd = 0
     overall_dn = 0
