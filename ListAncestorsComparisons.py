@@ -139,7 +139,7 @@ def get_mpra_data(args):
         - in_data.iloc[:, args.position_column].min()
         + 1
     )
-    in_data.iloc[:, args.alt_column].name = 'Alt'
+    in_data.iloc[:, args.alt_column].name = "Alt"
     index = pd.MultiIndex.from_arrays(
         [
             in_data.iloc[:, args.element_column],
@@ -207,6 +207,8 @@ def relabel_tree(tree, target_species_fasta):
         node.annotations["comparison"] = node.incident_edges()[-1].label
         if target_species_fasta and node is outgroup_root:
             node.annotations["species"] = "Outgroup"
+            node.annotations["kukn"] = 0.0
+            node.annotations["kdkn"] = 0.0
         else:
             node.annotations["species"] = node.taxon.label if node.taxon else node.label
 
@@ -291,29 +293,40 @@ def score_tree(
                 print("ERR:", type(err), err, file=outerr)
 
         node.annotations["udn"] = f"{branch_du}U {branch_dn}N {branch_dd}D"
+        node.annotations["dn"] = branch_dn
+        node.annotations["du"] = branch_du
+        node.annotations["dd"] = branch_dd
+        node.annotations["duplusdn"] = branch_du + branch_dn
+        node.annotations["ddplusdn"] = branch_dd + branch_dn
         if possible_u > 0 and possible_n > 0 and branch_dn > 0:
             node.annotations["kukn"] = (
                 np.clip(
                     np.log2((branch_du / possible_u) / (branch_dn / possible_n)), -3, 3
                 )
                 if branch_du > 0
-                else -3
+                else -3.0
             )
             node.annotations["ku"] = branch_du / possible_u
             node.annotations["kn"] = branch_dn / possible_n
+            node.annotations["kupluskn"] = "{:.04f}/{:.04f}".format(
+                branch_du / possible_u, branch_dn / possible_n
+            )
         else:
-            node.annotations["kukn"] = 0
+            node.annotations["kukn"] = 0.0
         if possible_d > 0 and possible_n > 0 and branch_dn > 0:
             node.annotations["kdkn"] = (
                 np.clip(
                     np.log2((branch_dd / possible_d) / (branch_dn / possible_n)), -3, 3
                 )
                 if branch_dd > 0
-                else -3
+                else -3.0
             )
             node.annotations["kd"] = branch_dd / possible_d
+            node.annotations["kdpluskn"] = "{:.04f}/{:.04f}".format(
+                branch_dd / possible_d, branch_dn / possible_n
+            )
         else:
-            node.annotations["kdkn"] = 0
+            node.annotations["kdkn"] = 0.0
         overall_du += branch_du
         overall_dd += branch_dd
         overall_dn += branch_dn
