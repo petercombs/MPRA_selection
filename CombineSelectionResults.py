@@ -68,13 +68,13 @@ if __name__ == "__main__":
     )
 
     pvals_by_type = {
-        'empirical': (out.KuKn_empirical_p, out.KdKn_empirical_p),
-        'fisher': (out.KuKn_fisher_p, out.KdKn_fisher_p),
+        "empirical": (out.KuKn_empirical_p, out.KdKn_empirical_p),
+        "fisher": (out.KuKn_fisher_p, out.KdKn_fisher_p),
     }
 
     out.to_csv("figures/data.tsv", sep="\t")
 
-    for pval_type, pvals in  pvals_by_type.items():
+    for pval_type, pvals in pvals_by_type.items():
         clf()
         scatter(
             -np.sign(np.log(out.KdKn)) * np.log10(pvals[1]),
