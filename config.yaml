@@ -83,5 +83,7 @@ promoters : [
 
 enhancers: [
     SORT1, SORT1.2, SORT1-flip ZRSh-13, ZRSh-13h2, BCL11A, IRF4, IRF6,
-    MYCrs6983267, MYCrs11986220, RET, TCF7L2, ZFAND3, UC88
+     RET, TCF7L2, ZFAND3, UC88
 ]
+
+# MYCrs6983267, MYCrs11986220, have all bases covered by a L1 repeat.
