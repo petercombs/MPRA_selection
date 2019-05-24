@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sys import argv
 from re import compile
-from matplotlib.pyplot import scatter, xlabel, ylabel, savefig, text, gca, clf
+from matplotlib.pyplot import scatter, xlabel, ylabel, savefig, annotate, gca, clf
 
 numerator_direction = compile("; ?\(([0-9]*)/")
 numerator_neutral = compile("\)/\(([0-9]*)/")
@@ -82,11 +82,15 @@ if __name__ == "__main__":
         )
 
         for ix in out.index:
-            text(
-                -np.sign(np.log(out.KdKn.loc[ix])) * np.log10(pvals[1].loc[ix]),
-                -np.sign(np.log(out.KuKn.loc[ix])) * np.log10(pvals[0].loc[ix]),
-                ix,
+            an = annotate(
+                xy=(
+                    -np.sign(np.log(out.KdKn.loc[ix])) * np.log10(pvals[1].loc[ix]),
+                    -np.sign(np.log(out.KuKn.loc[ix])) * np.log10(pvals[0].loc[ix]),
+                ),
+                s=ix,
+                arrowprops=dict(arrowstyle='simple'),
             )
+            an.draggable()
 
         ax = gca()
         ax.spines["bottom"].set_position(("data", 0))
