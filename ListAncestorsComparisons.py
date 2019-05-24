@@ -229,6 +229,10 @@ def score_tree(
     overall_dd = 0
     overall_dn = 0
 
+    possible_u = len(mpra_data.query("Value > 0 and pval < .05"))
+    possible_d = len(mpra_data.query("Value < 0 and pval < .05"))
+    possible_n = len(mpra_data.query("pval > .05"))
+
     for node in tree:
         if node.parent_node is None:
             continue
